@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Device Status</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+	body {
+	  font-family: Arial, sans-serif;
+	  display: flex;
+	  justify-content: center;
+	  align-items: center;
+	  min-height: 100vh;
+	  background-color: #222;
+	  color: white;
+	  margin: 0;
+	}
+
+	.container {
+	  text-align: center;
+	  width: 300px;
+	}
+
+	.debug-container {
+	  background: #333;
+	  padding: 10px;
+	  border-radius: 5px;
+	  margin-bottom: 20px;
+	  text-align: left;
+	}
+
+	.button-grid {
+	  display: grid;
+	  grid-template-columns: 1fr 1fr 1fr;
+	  gap: 10px;
+	}
+
+	.button {
+	  background: #333;
+	  border: 2px solid #555;
+	  border-radius: 50%;
+	  width: 60px;
+	  height: 60px;
+	  display: flex;
+	  justify-content: center;
+	  align-items: center;
+	  font-size: 14px;
+	  cursor: pointer;
+	  transition: background 0.3s;
+	}
+
+	.button:hover {
+	  background: #555;
+	}
+
+	.control-display {
+	  margin: 20px 0;
+	}
+
+	.temperature,
+	.timer {
+	  font-size: 24px;
+	  margin: 10px 0;
+	}
+
+	.slider-container {
+	  display: flex;
+	  align-items: center;
+	  margin-top: 20px;
+	}
+
+	.slider-label {
+	  width: 80px;
+	}
+
+	.slider {
+	  flex: 1;
+	}
+  </style>
+</head>
+<body>
+	<div class="container">
+		<h1>Device Control</h1>
+	
+		<!-- Debugging section to display attributes -->
+		<div class="debug-container">
+		  <h2>Attributes (Debugging)</h2>
+		  <ul id="attributes-list"></ul>
+		</div>
+	
+		<div class="button-grid">
+		  <div class="button" id="power-button">Power</div>
+		  <div class="button" id="outside-button">Outside</div>
+		  <div class="button" id="inside-button">Inside</div>
+		  <div class="button" id="reserve-button">Reserve</div>
+		</div>
+	
+		<div class="control-display">
+		  <div class="temperature">
+			<span id="temperature">0</span>°F
+			<button onclick="adjustTemperature(5)">+</button>
+			<button onclick="adjustTemperature(-5)">-</button>
+		  </div>
+		  <div class="timer">
+			<span id="hours">0</span>:<span id="minutes">0</span>
+			<button onclick="adjustTimer(1)">▲</button>
+			<button onclick="adjustTimer(-1)">▼</button>
+		  </div>
+		</div>
+	
+		<div class="slider-container">
+		  <span class="slider-label">Full Spectrum</span>
+		  <input type="range" id="full-spectrum-left" class="slider" min="0" max="100" value="50">
+		  <span>L</span>
+		  <input type="range" id="full-spectrum-right" class="slider" min="0" max="100" value="50">
+		  <span>R</span>
+		</div>
+	  </div>
+
+  <script>
+	const socket = io('http://localhost:3000')  // Adjust URL if necessary
+
+	const attributesList = document.getElementById('attributes-list');
+
+	// Function to update the attributes list for debugging
+	function updateAttributesList(attributes) {
+	  attributesList.innerHTML = ''; // Clear existing list
+	  for (const [key, value] of Object.entries(attributes)) {
+		const listItem = document.createElement('li');
+		listItem.textContent = `${key}: ${value}`;
+		attributesList.appendChild(listItem);
+	  }
+	}
+
+	// Set up control buttons
+	document.getElementById('power-button').onclick = () => togglePower();
+	document.getElementById('outside-button').onclick = () => toggleAttribute('EXTERNAL_LIGHT')
+	document.getElementById('inside-button').onclick = () => toggleAttribute('INTERNAL_LIGHT')
+	document.getElementById('reserve-button').onclick = () => toggleAttribute('reserve')
+
+	let isPowerOn = false;
+	let temperature = 0;
+	let timer = { hours: 0, minutes: 0 };
+
+	function togglePower() {
+		isPowerOn = !isPowerOn;
+		socket.emit('control', { power_flag: isPowerOn });
+		// updateAttributesList({ power: isPowerOn });
+	}
+
+	function toggleAttribute(attribute) {
+	  socket.emit('control', { [attribute]: true });
+	//   updateAttributesList({ [attribute]: true });
+	}
+
+	function adjustTemperature(change) {
+	  temperature += change;
+	  document.getElementById('temperature').textContent = temperature;
+	  socket.emit('control', { SET_TEMP: temperature });
+	}
+
+	function adjustTimer(change) {
+	  if (change > 0) {
+		timer.minutes++;
+		if (timer.minutes >= 60) {
+		  timer.minutes = 0;
+		  timer.hours++;
+		}
+	  } else {
+		timer.minutes--;
+		if (timer.minutes < 0) {
+		  timer.minutes = 59;
+		  timer.hours = Math.max(0, timer.hours - 1);
+		}
+	  }
+	  document.getElementById('hours').textContent = timer.hours
+	  document.getElementById('minutes').textContent = timer.minutes
+	  socket.emit('control', { SET_HOUR: timer.hours, SET_MINUTE: timer.minutes })
+	}
+
+	document.getElementById('full-spectrum-left').addEventListener('input', (e) => {
+	  socket.emit('control', { 'full-spectrum-left': e.target.value });
+	  updateAttributesList({ 'full-spectrum-left': e.target.value });
+	});
+
+	document.getElementById('full-spectrum-right').addEventListener('input', (e) => {
+	  socket.emit('control', { 'full-spectrum-right': e.target.value });
+	  updateAttributesList({ 'full-spectrum-right': e.target.value });
+	});
+
+	// Update the device status text
+	socket.on('attributes', (status) => {
+		console.log('status', status)
+
+		updateAttributesList(status)
+	});
+
+	// Emit events to control the device
+	function startDevice() {
+	  socket.emit('start');
+	}
+
+	function stopDevice() {
+	  socket.emit('stop');
+	}
+
+	function resetDevice() {
+	  socket.emit('reset');
+	}
+
+	function controlDevice() {
+	  const attribute = document.getElementById('attribute').value;
+	  const value = document.getElementById('value').value;
+	  const options = { [attribute]: value };
+	  socket.emit('control', options);
+	}
+  </script>
+</body>
+</html>
