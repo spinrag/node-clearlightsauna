@@ -1,0 +1,20 @@
+{
+	"name": "clearlight-controls",
+	"version": "1.0.0",
+	"private": true,
+	"scripts": {
+		"dev": "pnpm -r run dev",
+		"dev:frontend": "pnpm --filter frontend run dev",
+		"dev:backend": "pnpm --filter backend run dev",
+		"build": "pnpm -r run build",
+		"start": "pnpm --filter backend run start"
+	},
+	"dependencies": {
+		"events": "^3.3.0",
+		"express": "^4.21.1",
+		"socket.io": "^4.8.1"
+	},
+	"devDependencies": {
+		
+	}
+}
