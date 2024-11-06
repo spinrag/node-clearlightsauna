@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
-	import { writable } from 'svelte/store';
-	import { socket } from '$lib/socket';
+	import { onMount, onDestroy } from 'svelte'
+	import { writable } from 'svelte/store'
+	import { socket } from '$lib/socket'
 
 	import RoundButton from '$lib/components/toggleButton.svelte'
 	import { faPowerOff, faLightbulb, faClock } from '@fortawesome/free-solid-svg-icons'
@@ -46,7 +46,10 @@
 		SN: 0,
 		CURRENT_TEMP: 0,
 		heart_pulse: 0
-	});
+	})
+
+	const devMode = import.meta.env.VITE_DEV_MODE === 'true'
+	if (devMode) console.log('devMode active', devMode)
 
 	// Local variables for current and set temperatures
 	let CURRENT_TEMP = 60;
@@ -132,7 +135,7 @@
 		});
 
 		socket.on('attributes', (status) => {
-			console.log('status', status);
+			if (devMode) console.log('status', status);
 			saunaStatus.update((currentStatus) => ({
 				...currentStatus,
 				...status // Assume status includes an object with CURRENT_TEMP
@@ -286,8 +289,10 @@
 		{/if}
 	  </div>
 
-	<!-- Display status or temperature details in a preformatted box -->
-	<pre class="bg-white text-gray-800 p-4 rounded-md shadow-md mt-4">
-		{JSON.stringify($saunaStatus, null, 2)}
-	</pre>
+	{#if devMode}
+		<!-- Display status or temperature details in a preformatted box -->
+		<pre class="bg-white text-gray-800 p-4 rounded-md shadow-md mt-4">
+			{JSON.stringify($saunaStatus, null, 2)}
+		</pre>
+	{/if}
 </div>
