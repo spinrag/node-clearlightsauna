@@ -70,8 +70,13 @@
 	}
 
 	function setTemperature(value: number) {
-		const SET_TEMP = Math.max(0, $saunaStatus.SET_TEMP + value) // Update locally with boundary check
-		socket.emit('control', { SET_TEMP })
+		const MIN_TEMP = 60
+		const MAX_TEMP = 180
+		const newTemp = $saunaStatus.SET_TEMP + value
+		
+		if (newTemp >= MIN_TEMP && newTemp <= MAX_TEMP) {
+			socket.emit('control', { SET_TEMP: newTemp })
+		}
 	}
 
 	// Function to get the temperature color based on the current temperature
@@ -103,21 +108,29 @@
 	}
 
 	function adjustPreTime(change: number) {
-		// Update the minute value, and adjust the hour as needed
-		PRE_TIME_MINUTE += change
+		saunaStatus.update((status) => {
+			let newMinute = status.PRE_TIME_MINUTE + change
+			let newHour = status.PRE_TIME_HOUR
 
-		if (PRE_TIME_MINUTE >= 60) {
-			PRE_TIME_MINUTE = 0
-			PRE_TIME_HOUR = (PRE_TIME_HOUR + 1) % 24 // Keep hour within 24-hour range
-		} else if ($saunaStatus.PRE_TIME_MINUTE < 0) {
-			PRE_TIME_MINUTE = 59
-			PRE_TIME_HOUR = (PRE_TIME_HOUR - 1 + 24) % 24 // Handle negative hour wrapping
-		}
+			if (newMinute >= 60) {
+				newMinute = 0
+				newHour = (newHour + 1) % 24
+			} else if (newMinute < 0) {
+				newMinute = (change === -1) ? 59 : 60 + change
+				newHour = (newHour - 1 + 24) % 24
+			}
 
-		// Emit the updated time to the server
-		socket.emit('control', {
-			PRE_TIME_HOUR,
-			PRE_TIME_MINUTE
+			// Emit the updated time to the server
+			socket.emit('control', {
+				PRE_TIME_HOUR: newHour,
+				PRE_TIME_MINUTE: newMinute
+			})
+
+			return {
+				...status,
+				PRE_TIME_HOUR: newHour,
+				PRE_TIME_MINUTE: newMinute
+			}
 		})
 	}
 
@@ -272,13 +285,13 @@
 			  <div class="flex flex-col space-y-2 mr-4">
 				<button 
 					class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center" 
-					use:pressHold={{ onPress: () => adjustPreTime(1), onHold: () => adjustPreTime(5), holdDuration: 500 }}
+					use:pressHold={{ onPress: () => adjustPreTime(1), onHold: () => adjustPreTime(15), holdDuration: 500, holdInterval: 750 }}
 				>
 				  ▲
 				</button>
 				<button 
 					class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center" 
-					use:pressHold={{ onPress: () => adjustPreTime(-1), onHold: () => adjustPreTime(-5), holdDuration: 500 }}
+					use:pressHold={{ onPress: () => adjustPreTime(-1), onHold: () => adjustPreTime(-15), holdDuration: 500, holdInterval: 750 }}
 				>
 				  ▼
 				</button>
