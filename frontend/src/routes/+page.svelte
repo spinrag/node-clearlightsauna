@@ -93,7 +93,7 @@
 		SET_MINUTE += change
 
 		if (SET_MINUTE >= 60) {
-			SET_MINUTE = 0
+			SET_MINUTE = 60
 			SET_HOUR = (SET_HOUR + 1) % 24 // Keep hour within 24-hour range
 		} else if ($saunaStatus.SET_MINUTE < 0) {
 			SET_MINUTE = 59
@@ -102,7 +102,7 @@
 
 		// Emit the updated time to the server
 		socket.emit('control', {
-			SET_HOUR,
+			SET_HOUR: 0,
 			SET_MINUTE
 		})
 	}
