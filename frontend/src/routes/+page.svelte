@@ -218,13 +218,15 @@
 				<!-- Up/Down Buttons Vertically Aligned with Set Temperature Circle -->
 				<div class="flex flex-col space-y-2 mr-4">
 					<button
-						class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center"
+						class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center select-none"
+						on:touchstart|preventDefault
 						use:pressHold={{ onPress: () => setTemperature(1), onHold: () => setTemperature(5), holdDuration: 500 }}
 					>
 						▲
 					</button>
 					<button
-						class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center"
+						class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center select-none"
+						on:touchstart|preventDefault
 						use:pressHold={{ onPress: () => setTemperature(-1), onHold: () => setTemperature(-5), holdDuration: 500 }}
 					>
 						▼
@@ -248,13 +250,15 @@
 			<!-- Up/Down Buttons for Time -->
 			<div class="flex flex-col space-y-2 mr-4">
 				<button
-					class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center"
+					class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center select-none"
+					on:touchstart|preventDefault
 					use:pressHold={{ onPress: () => adjustTime(1), onHold: () => adjustTime(5), holdDuration: 500 }}
 				>
 					▲
 				</button>
 				<button
-					class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center"
+					class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center select-none"
+					on:touchstart|preventDefault
 					use:pressHold={{ onPress: () => adjustTime(-1), onHold: () => adjustTime(-5), holdDuration: 500 }}
 				>
 					▼
@@ -284,13 +288,15 @@
 			  <!-- Up/Down Buttons and Time Display for Pre-Time -->
 			  <div class="flex flex-col space-y-2 mr-4">
 				<button 
-					class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center" 
+					class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center select-none"
+					on:touchstart|preventDefault
 					use:pressHold={{ onPress: () => adjustPreTime(1), onHold: () => adjustPreTime(15), holdDuration: 500, holdInterval: 750 }}
 				>
 				  ▲
 				</button>
 				<button 
-					class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center" 
+					class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center select-none"
+					on:touchstart|preventDefault
 					use:pressHold={{ onPress: () => adjustPreTime(-1), onHold: () => adjustPreTime(-15), holdDuration: 500, holdInterval: 750 }}
 				>
 				  ▼
