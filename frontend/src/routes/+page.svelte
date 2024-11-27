@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte'
 	import { writable } from 'svelte/store'
 	import { socket } from '$lib/socket'
+	import { pressHold } from '$lib/pressHold'
 
 	import RoundButton from '$lib/components/toggleButton.svelte'
 	import { faPowerOff, faLightbulb, faClock } from '@fortawesome/free-solid-svg-icons'
@@ -205,13 +206,13 @@
 				<div class="flex flex-col space-y-2 mr-4">
 					<button
 						class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center"
-						on:click={() => setTemperature(1)}
+						use:pressHold={{ onPress: () => setTemperature(1), onHold: () => setTemperature(5), holdDuration: 500 }}
 					>
 						▲
 					</button>
 					<button
 						class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center"
-						on:click={() => setTemperature(-1)}
+						use:pressHold={{ onPress: () => setTemperature(-1), onHold: () => setTemperature(-5), holdDuration: 500 }}
 					>
 						▼
 					</button>
@@ -235,13 +236,13 @@
 			<div class="flex flex-col space-y-2 mr-4">
 				<button
 					class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center"
-					on:click={() => adjustTime(1)}
+					use:pressHold={{ onPress: () => adjustTime(1), onHold: () => adjustTime(5), holdDuration: 500 }}
 				>
 					▲
 				</button>
 				<button
 					class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center"
-					on:click={() => adjustTime(-1)}
+					use:pressHold={{ onPress: () => adjustTime(-1), onHold: () => adjustTime(-5), holdDuration: 500 }}
 				>
 					▼
 				</button>
@@ -269,10 +270,16 @@
 			<div class="flex items-center ml-4">
 			  <!-- Up/Down Buttons and Time Display for Pre-Time -->
 			  <div class="flex flex-col space-y-2 mr-4">
-				<button class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center" on:click={() => adjustPreTime(1)}>
+				<button 
+					class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center" 
+					use:pressHold={{ onPress: () => adjustPreTime(1), onHold: () => adjustPreTime(5), holdDuration: 500 }}
+				>
 				  ▲
 				</button>
-				<button class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center" on:click={() => adjustPreTime(-1)}>
+				<button 
+					class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center" 
+					use:pressHold={{ onPress: () => adjustPreTime(-1), onHold: () => adjustPreTime(-5), holdDuration: 500 }}
+				>
 				  ▼
 				</button>
 			  </div>
@@ -296,3 +303,8 @@
 		</pre>
 	{/if}
 </div>
+<style>
+	.is-holding {
+		background-color: lightblue !important;
+	}
+</style>
