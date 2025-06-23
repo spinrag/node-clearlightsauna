@@ -14,7 +14,7 @@ A web-based control system for Clearlight sauna devices, featuring a SvelteKit f
 
 ## Prerequisites
 
-- Node.js (v18 or higher)
+- Node.js (v22 or higher)
 - pnpm (recommended) or npm
 - Git
 - Nginx (optional, for production)
