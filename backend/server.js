@@ -111,8 +111,8 @@ async function startServer() {
 		// socket.emit('status', await device.retrieveData());
 		socket.emit('attributes', deviceSettings);
 
-		socket.on('connected', () => {
-
+		socket.on('connected', (data) => {
+			console.log('Client connected', data);
 		})
 
 		// Update the client when the device status changes
