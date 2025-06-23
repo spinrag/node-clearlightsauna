@@ -10,22 +10,39 @@ const { ClearlightDevice } = require('../../node-gizwits/index')
 const app = express()
 const server = http.createServer(app)
 
+// Function to convert wildcard patterns to regex
+function convertWildcardToRegex(origin) {
+	// Handle localhost with wildcard port
+	if (origin === 'http://localhost:*') {
+		return /^http:\/\/localhost:\d+$/;
+	}
+	
+	// Handle any wildcard subdomain pattern (e.g., https://*.example.com)
+	if (origin.includes('*.')) {
+		const domain = origin.replace('*.', '');
+		// Escape dots and other regex special characters in the domain
+		const escapedDomain = domain.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		return new RegExp(`^https?:\\/\\/([a-zA-Z0-9-]+\\.)?${escapedDomain}$`);
+	}
+	
+	// Handle any wildcard port pattern (e.g., http://example.com:*)
+	if (origin.includes(':*')) {
+		const baseUrl = origin.replace(':*', '');
+		// Escape dots and other regex special characters
+		const escapedBaseUrl = baseUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		return new RegExp(`^${escapedBaseUrl}:\\d+$`);
+	}
+	
+	// Return as string for exact matches
+	return origin;
+}
+
 // Parse ALLOWED_ORIGINS and handle dynamic patterns
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
-  .split(',')
-  .map((origin) => {
-    // Convert any localhost with wildcard port to regex
-    if (origin === 'http://localhost:*') {
-      return /^http:\/\/localhost:\d+$/;
-    }
-    // Convert any subdomain wildcard for spinrag.in
-    if (origin === 'https://*.spinrag.in') {
-      return /^https:\/\/([a-zA-Z0-9-]+\.)?spinrag\.in$/;
-    }
-    // Return as string for exact matches
-    return origin;
-  })
-
+	.split(',')
+	.map(origin => origin.trim())
+	.filter(origin => origin.length > 0)
+	.map(convertWildcardToRegex);
 
 const io = new Server(server, {
 	cors: {
