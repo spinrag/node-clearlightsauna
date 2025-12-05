@@ -41,6 +41,15 @@ if (process.env.NODE_ENV !== 'production') {
 	}))
 }
 
+// Global unhandled rejection handler to prevent crashes
+process.on('unhandledRejection', (reason, promise) => {
+	logger.error('Unhandled Promise Rejection', { 
+		reason: reason instanceof Error ? reason.message : String(reason),
+		stack: reason instanceof Error ? reason.stack : undefined
+	})
+	// Don't exit the process - log and continue
+})
+
 const app = express()
 const server = http.createServer(app)
 
@@ -96,8 +105,13 @@ async function startServer() {
 	let connected = false
 	let deviceSettings = {}
 
+	// Set max listeners to prevent memory leak warnings
+	device.setMaxListeners(20);
+
 	device.on('error', err => {
-		logger.error('Device error', { error: err.message, stack: err.stack })
+		const errorMessage = err instanceof Error ? err.message : (err ? String(err) : 'Unknown error');
+		const errorStack = err instanceof Error ? err.stack : undefined;
+		logger.error('Device error', { error: errorMessage, stack: errorStack })
 	})
 
 	device.on('connected', async () => {
@@ -108,7 +122,8 @@ async function startServer() {
 			connected = true
 			logger.info('Device login and data retrieval completed')
 		} catch (error) {
-			logger.error('Failed to login or retrieve data', { error: error.message })
+			const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'Unknown error');
+			logger.error('Failed to login or retrieve data', { error: errorMessage })
 		}
 	})
 
@@ -134,7 +149,8 @@ async function startServer() {
 				await device.setAttribute({ [key]: value })
 				logger.debug(`Successfully set ${key}`)
 			} catch (error) {
-				logger.error(`Failed to set ${key}`, { error: error.message, key, value })
+				const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'Unknown error');
+				logger.error(`Failed to set ${key}`, { error: errorMessage, key, value })
 				throw error // Re-throw to handle in the calling function
 			}
 		}
@@ -177,22 +193,28 @@ async function startServer() {
 			logger.debug('Client connected event received', { socketId: socket.id, data })
 		})
 
-		// Update the client when the device status changes
-		device.on('data', (status) => {
+		// Create listener functions that can be removed later
+		const dataListener = (status) => {
 			deviceSettings = { ...deviceSettings, ...status }
 			socket.emit('attributes', deviceSettings)
-		})
+		}
 
-		// Update the client when device attributes/settings change
-		device.on('control', (settings) => {
+		const controlListener = (settings) => {
 			logger.debug('Device control event', { settings })
 			socket.emit('attributes', settings)
 			(async () => {
 				await device.setAttribute(settings)
 			})().catch((error) => {
-				logger.error('Error setting attribute from control event', { error: error.message, settings })
+				const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'Unknown error');
+				logger.error('Error setting attribute from control event', { error: errorMessage, settings })
 			})
-		})
+		}
+
+		// Update the client when the device status changes
+		device.on('data', dataListener)
+
+		// Update the client when device attributes/settings change
+		device.on('control', controlListener)
 
 		socket.on('start', () => {
 			logger.info('Device start requested via socket', { socketId: socket.id })
@@ -212,12 +234,16 @@ async function startServer() {
 		socket.on('control', (options) => {
 			logger.info('Device control requested via socket', { socketId: socket.id, options })
 			handleControl(options).catch((error) => {
-				logger.error('Error handling control via socket', { error: error.message, socketId: socket.id, options })
+				const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'Unknown error');
+				logger.error('Error handling control via socket', { error: errorMessage, socketId: socket.id, options })
 			})
 		})
 
 		socket.on('disconnect', () => {
 			logger.info('Client disconnected', { socketId: socket.id })
+			// Remove listeners to prevent memory leaks
+			device.removeListener('data', dataListener)
+			device.removeListener('control', controlListener)
 		})
 	})
 
@@ -235,5 +261,8 @@ async function startServer() {
 
 // Start the server
 startServer().catch((error) => {
-	logger.error('Error starting server', { error: error.message, stack: error.stack })
+	const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'Unknown error');
+	const errorStack = error instanceof Error ? error.stack : undefined;
+	logger.error('Error starting server', { error: errorMessage, stack: errorStack })
+	process.exit(1);
 })
