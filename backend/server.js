@@ -99,6 +99,32 @@ const io = new Server(server, {
 app.use(express.json())
 app.use(express.static('public'))
 
+// --- Authentication ---
+
+const API_TOKEN = process.env.API_TOKEN
+
+function requireAuth(req, res, next) {
+	if (!API_TOKEN) {
+		logger.warn('API_TOKEN not set — all requests are rejected')
+		return res.status(503).json({ error: 'Server not configured for authentication' })
+	}
+
+	const header = req.headers.authorization
+	if (!header || !header.startsWith('Bearer ')) {
+		return res.status(401).json({ error: 'Missing or malformed Authorization header' })
+	}
+
+	const token = header.slice(7)
+	if (token !== API_TOKEN) {
+		return res.status(403).json({ error: 'Invalid token' })
+	}
+
+	next()
+}
+
+// Apply auth to all /device/* routes
+app.use('/device', requireAuth)
+
 // Async function to initialize the server
 async function startServer() {
 	const device = new ClearlightDevice(process.env.CLEARLIGHT_IP)
