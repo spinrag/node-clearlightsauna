@@ -122,6 +122,27 @@ function requireAuth(req, res, next) {
 	next()
 }
 
+// Socket.IO authentication middleware
+io.use((socket, next) => {
+	if (!API_TOKEN) {
+		logger.warn('Socket auth rejected: API_TOKEN not configured')
+		return next(new Error('Server not configured for authentication'))
+	}
+
+	const token = socket.handshake.auth?.token
+	if (!token) {
+		logger.warn('Socket auth rejected: no token provided', { socketId: socket.id })
+		return next(new Error('Authentication token required'))
+	}
+	if (token !== API_TOKEN) {
+		logger.warn('Socket auth rejected: token mismatch', { socketId: socket.id })
+		return next(new Error('Invalid authentication token'))
+	}
+
+	logger.debug('Socket auth accepted', { socketId: socket.id })
+	next()
+})
+
 // Apply auth to all /device/* routes
 app.use('/device', requireAuth)
 

@@ -1,6 +1,8 @@
 import { io } from 'socket.io-client'
 
-// Read hostname from environment variable
 const hostname = import.meta.env.VITE_SOCKET_HOST || 'http://localhost:3000'
+const token = import.meta.env.VITE_API_TOKEN || ''
 
-export const socket = io(hostname)
+export const socket = io(hostname, {
+	auth: { token }
+})
