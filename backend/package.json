@@ -4,7 +4,8 @@
   "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "mocha test/**/*.test.js --timeout 5000"
   },
   "dependencies": {
     "dotenv": "^16.5.0",
@@ -13,6 +14,8 @@
     "winston": "^3.11.0"
   },
   "devDependencies": {
+    "chai": "^6.2.2",
+    "mocha": "^11.7.5",
     "nodemon": "^3.1.10"
   }
 }
