@@ -157,8 +157,8 @@ async function startServer() {
 	device.setMaxListeners(20);
 
 	device.on('error', err => {
-		const errorMessage = err instanceof Error ? err.message : (err ? String(err) : 'Unknown error');
-		const errorStack = err instanceof Error ? err.stack : undefined;
+		const errorMessage = err instanceof Error ? err.message : (err ? String(err) : 'Unknown error')
+		const errorStack = err instanceof Error ? err.stack : undefined
 		logger.error('Device error', { error: errorMessage, stack: errorStack })
 	})
 
@@ -168,15 +168,22 @@ async function startServer() {
 			await device.login()
 			await device.retrieveData()
 			connected = true
+			io.emit('deviceStatus', { connected: true })
 			logger.info('Device login and data retrieval completed')
 		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'Unknown error');
+			const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'Unknown error')
 			logger.error('Failed to login or retrieve data', { error: errorMessage })
 		}
 	})
 
+	device.on('disconnected', () => {
+		logger.warn('Device disconnected')
+		connected = false
+		io.emit('deviceStatus', { connected: false })
+	})
+
 	device.on('data', data => {
-		logger.debug('Device data received', { 
+		logger.debug('Device data received', {
 			data: Object.entries(data).reduce((acc, [key, value]) => {
 				acc[key] = value
 				return acc
@@ -184,6 +191,15 @@ async function startServer() {
 		})
 		deviceSettings = data
     })
+
+	function requireDevice(res) {
+		if (!connected) {
+			logger.warn('Command rejected: device not connected')
+			res.status(503).json({ error: 'Device not connected' })
+			return false
+		}
+		return true
+	}
 
 	async function handleControl(settings) {
 		logger.info('Handling device control', { settings })
@@ -206,24 +222,28 @@ async function startServer() {
 
 	// HTTP endpoints for device actions
 	app.post('/device/start', (req, res) => {
+		if (!requireDevice(res)) return
 		logger.info('Device start requested')
 		device.start()
 		res.send({ status: 'Device started' })
 	})
 
 	app.post('/device/stop', (req, res) => {
+		if (!requireDevice(res)) return
 		logger.info('Device stop requested')
 		device.stop()
 		res.send({ status: 'Device stopped' })
 	})
 
 	app.post('/device/reset', (req, res) => {
+		if (!requireDevice(res)) return
 		logger.info('Device reset requested')
 		device.reset()
 		res.send({ status: 'Device resetting' })
 	})
 
 	app.post('/device/control', (req, res) => {
+		if (!requireDevice(res)) return
 		const { valid, errors, payload } = validateControlPayload(req.body)
 		if (!valid) {
 			logger.warn('Invalid control payload via HTTP', { errors, body: req.body })
@@ -238,7 +258,8 @@ async function startServer() {
 	io.on('connection', async (socket) => {
 		logger.info('Client connected', { socketId: socket.id, deviceSettings })
 
-		// Send the initial device status and attributes to the client
+		// Send the initial device and connection status to the client
+		socket.emit('deviceStatus', { connected })
 		socket.emit('attributes', deviceSettings)
 
 		socket.on('connected', (data) => {
@@ -269,21 +290,25 @@ async function startServer() {
 		device.on('control', controlListener)
 
 		socket.on('start', () => {
+			if (!connected) return socket.emit('error', { error: 'Device not connected' })
 			logger.info('Device start requested via socket', { socketId: socket.id })
 			device.start()
 		})
 
 		socket.on('stop', () => {
+			if (!connected) return socket.emit('error', { error: 'Device not connected' })
 			logger.info('Device stop requested via socket', { socketId: socket.id })
 			device.stop()
 		})
 
 		socket.on('reset', () => {
+			if (!connected) return socket.emit('error', { error: 'Device not connected' })
 			logger.info('Device reset requested via socket', { socketId: socket.id })
 			device.reset()
 		})
 
 		socket.on('control', (options) => {
+			if (!connected) return socket.emit('error', { error: 'Device not connected' })
 			const { valid, errors, payload } = validateControlPayload(options)
 			if (!valid) {
 				logger.warn('Invalid control payload via socket', { errors, options, socketId: socket.id })
@@ -292,7 +317,7 @@ async function startServer() {
 			}
 			logger.info('Device control requested via socket', { socketId: socket.id, options: payload })
 			handleControl(payload).catch((error) => {
-				const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'Unknown error');
+				const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'Unknown error')
 				logger.error('Error handling control via socket', { error: errorMessage, socketId: socket.id, options: payload })
 			})
 		})
@@ -305,16 +330,17 @@ async function startServer() {
 		})
 	})
 
-	logger.info('Attempting to connect to device...')
-	console.time('Connect')
-	await device.connect()
-	console.timeEnd('Connect')
-
 	const PORT = process.env.PORT || 3000
 	server.listen(PORT, () => {
 		logger.info(`Server listening on port ${PORT}`)
 	})
 
+	// Connect to device in the background — server is already accepting requests
+	logger.info('Attempting to connect to device...')
+	device.connect().catch(err => {
+		const errorMessage = err instanceof Error ? err.message : String(err)
+		logger.error('Initial device connection failed, will auto-reconnect', { error: errorMessage })
+	})
 }
 
 // Start the server
