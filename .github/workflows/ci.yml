@@ -14,17 +14,25 @@ jobs:
         with:
           submodules: true
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
 
-      - name: Install backend dependencies
-        working-directory: backend
-        run: npm ci
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install submodule dependencies
+        working-directory: lib/node-gizwits
+        run: npm install
 
       - name: Run backend tests
         working-directory: backend
-        run: npm test
+        run: pnpm test
 
   frontend-lint:
     runs-on: ubuntu-latest
