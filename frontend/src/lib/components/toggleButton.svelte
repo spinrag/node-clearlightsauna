@@ -1,15 +1,12 @@
 <script>
-	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
-	export let icon;
-	export let label = '';
-	export let active = false;
-	export let onToggle; // Function passed from the parent
+	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome'
+	let { icon, label = '', active = false, onToggle } = $props()
 </script>
 
 <div class="button-container">
-	<div class="round-button {active ? 'active' : ''}" on:click={onToggle}>
+	<button type="button" class="round-button {active ? 'active' : ''}" onclick={onToggle}>
 		<FontAwesomeIcon {icon} />
-	</div>
+	</button>
 	<div class="label">{label}</div>
 </div>
 
@@ -21,6 +18,8 @@
 	}
 
 	.round-button {
+		border: none;
+		padding: 0;
 		width: 60px;
 		height: 60px;
 		border-radius: 50%;
