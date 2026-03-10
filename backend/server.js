@@ -7,6 +7,7 @@ const winston = require('winston')
 require('dotenv').config()
 
 const { ClearlightDevice } = require('../../node-gizwits/index')
+const { validateControlPayload } = require('./validation')
 
 // Configure Winston logger
 const logger = winston.createLogger({
@@ -223,10 +224,14 @@ async function startServer() {
 	})
 
 	app.post('/device/control', (req, res) => {
-		const options = req.body
-		logger.info('Device control requested', { options })
-		device.control(options)
-		res.send({ status: 'Device controlled', settings: options })
+		const { valid, errors, payload } = validateControlPayload(req.body)
+		if (!valid) {
+			logger.warn('Invalid control payload via HTTP', { errors, body: req.body })
+			return res.status(400).json({ error: 'Invalid control payload', details: errors })
+		}
+		logger.info('Device control requested', { options: payload })
+		device.control(payload)
+		res.send({ status: 'Device controlled', settings: payload })
 	})
 
 	// Socket.IO events for device actions
@@ -279,10 +284,16 @@ async function startServer() {
 		})
 
 		socket.on('control', (options) => {
-			logger.info('Device control requested via socket', { socketId: socket.id, options })
-			handleControl(options).catch((error) => {
+			const { valid, errors, payload } = validateControlPayload(options)
+			if (!valid) {
+				logger.warn('Invalid control payload via socket', { errors, options, socketId: socket.id })
+				socket.emit('error', { error: 'Invalid control payload', details: errors })
+				return
+			}
+			logger.info('Device control requested via socket', { socketId: socket.id, options: payload })
+			handleControl(payload).catch((error) => {
 				const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'Unknown error');
-				logger.error('Error handling control via socket', { error: errorMessage, socketId: socket.id, options })
+				logger.error('Error handling control via socket', { error: errorMessage, socketId: socket.id, options: payload })
 			})
 		})
 
