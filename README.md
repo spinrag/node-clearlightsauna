@@ -305,6 +305,7 @@ Create a production `.env` file in the root directory:
 NODE_ENV=production
 PORT=3000
 CLEARLIGHT_IP=your-device-ip
+API_TOKEN=generate-a-strong-random-secret
 ALLOWED_ORIGINS=https://sauna.example.com,https://sauna-api.example.com
 
 # Optional: Logging level (error, warn, info, debug)

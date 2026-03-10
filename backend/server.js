@@ -87,6 +87,13 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
 	.filter(origin => origin.length > 0)
 	.map(convertWildcardToRegex)
 
+if (process.env.NODE_ENV === 'production') {
+	const raw = (process.env.ALLOWED_ORIGINS || '')
+	if (raw.includes(':*') || raw.includes('localhost')) {
+		logger.warn('ALLOWED_ORIGINS contains broad wildcards or localhost — tighten for production')
+	}
+}
+
 logger.info('Allowed origins configured', { allowedOrigins: allowedOrigins.map(o => o.toString()) })
 
 const io = new Server(server, {
