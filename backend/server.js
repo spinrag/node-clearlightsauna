@@ -300,6 +300,11 @@ async function startServer() {
 			logger.debug('Client connected event received', { socketId: socket.id, data })
 		})
 
+		socket.on('requestStatus', () => {
+			socket.emit('deviceStatus', { connected })
+			socket.emit('attributes', deviceSettings)
+		})
+
 		// Create listener functions that can be removed later
 		const dataListener = (status) => {
 			deviceSettings = { ...deviceSettings, ...status }
