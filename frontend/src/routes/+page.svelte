@@ -56,12 +56,12 @@
 	let serverConnected = $state(false);
 	let deviceConnected = $state(false);
 
-	let SET_MINUTE = 55;
+	let SET_MINUTE = $state(55);
 
 	// Pre-time settings and flag
-	let PRE_TIME_HOUR = 0;
-	let PRE_TIME_MINUTE = 0;
-	let PRE_TIME_FLAG = false;
+	let PRE_TIME_HOUR = $state(0);
+	let PRE_TIME_MINUTE = $state(0);
+	let PRE_TIME_FLAG = $state(false);
 
 	function toggleAttribute(attribute: keyof SaunaStatus) {
 		socket.emit('control', { [attribute]: !$saunaStatus[attribute] });
@@ -239,7 +239,6 @@
 				<div class="flex flex-col space-y-2 mr-4">
 					<button
 						class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center select-none"
-						on:touchstart|preventDefault
 						use:pressHold={{
 							onPress: () => setTemperature(1),
 							onHold: () => setTemperature(5),
@@ -250,7 +249,6 @@
 					</button>
 					<button
 						class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center select-none"
-						on:touchstart|preventDefault
 						use:pressHold={{
 							onPress: () => setTemperature(-1),
 							onHold: () => setTemperature(-5),
@@ -279,7 +277,6 @@
 			<div class="flex flex-col space-y-2 mr-4">
 				<button
 					class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center select-none"
-					on:touchstart|preventDefault
 					use:pressHold={{
 						onPress: () => adjustTime(1),
 						onHold: () => adjustTime(5),
@@ -290,7 +287,6 @@
 				</button>
 				<button
 					class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center select-none"
-					on:touchstart|preventDefault
 					use:pressHold={{
 						onPress: () => adjustTime(-1),
 						onHold: () => adjustTime(-5),
@@ -330,7 +326,6 @@
 					<div class="flex flex-col space-y-2 mr-4">
 						<button
 							class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center select-none"
-							on:touchstart|preventDefault
 							use:pressHold={{
 								onPress: () => adjustPreTime(1),
 								onHold: () => adjustPreTime(15),
@@ -342,7 +337,6 @@
 						</button>
 						<button
 							class="bg-gray-600 hover:bg-gray-500 text-white w-10 h-10 rounded-full flex items-center justify-center select-none"
-							on:touchstart|preventDefault
 							use:pressHold={{
 								onPress: () => adjustPreTime(-1),
 								onHold: () => adjustPreTime(-15),
