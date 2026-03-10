@@ -151,6 +151,15 @@ app.use('/device', requireAuth)
 async function startServer() {
 	const device = new ClearlightDevice(process.env.CLEARLIGHT_IP)
 	let connected = false
+
+	// Health check — no auth required
+	app.get('/health', (req, res) => {
+		res.json({
+			status: connected ? 'ok' : 'degraded',
+			device: connected ? 'connected' : 'disconnected',
+			uptime: process.uptime()
+		})
+	})
 	let deviceSettings = {}
 
 	// Set max listeners to prevent memory leak warnings
