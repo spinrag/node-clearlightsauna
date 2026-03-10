@@ -201,25 +201,50 @@ async function startServer() {
 		return true
 	}
 
+	// Pending attribute values waiting to be sent. When commands arrive faster
+	// than the device can process them, we keep only the latest value per key
+	// and send it once the previous command for that key completes.
+	const pendingAttributes = {}
+	const inflightAttributes = new Set()
+
+	async function sendAttribute(key, value) {
+		if (inflightAttributes.has(key)) {
+			// A command for this key is already in-flight — store the latest
+			// value so it gets sent when the current one finishes.
+			pendingAttributes[key] = value
+			logger.debug(`Queued ${key} = ${value} (previous command in-flight)`)
+			return
+		}
+
+		inflightAttributes.add(key)
+		try {
+			logger.debug(`Setting attribute: ${key} = ${value}`)
+			await device.setAttribute({ [key]: value })
+			logger.debug(`Successfully set ${key}`)
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'Unknown error')
+			logger.error(`Failed to set ${key}`, { error: errorMessage, key, value })
+		} finally {
+			inflightAttributes.delete(key)
+			// If a newer value was queued while we were in-flight, send it now
+			if (key in pendingAttributes) {
+				const nextValue = pendingAttributes[key]
+				delete pendingAttributes[key]
+				sendAttribute(key, nextValue)
+			}
+		}
+	}
+
 	async function handleControl(settings) {
 		logger.info('Handling device control', { settings })
-		// Process each setting one at a time
 		for (const [key, value] of Object.entries(settings)) {
-			logger.debug(`Setting attribute: ${key} = ${value}`)
 			// The physical sauna only supports a 0–60 minute timer with no hour
 			// component. SET_HOUR is accepted by validation but has no practical
 			// effect on the device and may behave unpredictably.
 			if (key === 'SET_HOUR') {
 				logger.warn('SET_HOUR sent but physical controls have no hour component')
 			}
-			try {
-				await device.setAttribute({ [key]: value })
-				logger.debug(`Successfully set ${key}`)
-			} catch (error) {
-				const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'Unknown error');
-				logger.error(`Failed to set ${key}`, { error: errorMessage, key, value })
-				throw error // Re-throw to handle in the calling function
-			}
+			sendAttribute(key, value)
 		}
 	}
 
