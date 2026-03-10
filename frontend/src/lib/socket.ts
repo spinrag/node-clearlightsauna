@@ -6,3 +6,7 @@ const token = import.meta.env.VITE_API_TOKEN || '';
 export const socket = io(hostname, {
 	auth: { token }
 });
+
+socket.on('connect_error', (err) => {
+	console.error('Socket connection error:', err.message);
+});

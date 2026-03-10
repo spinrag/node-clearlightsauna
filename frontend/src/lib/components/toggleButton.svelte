@@ -4,7 +4,12 @@
 </script>
 
 <div class="button-container">
-	<button type="button" class="round-button {active ? 'active' : ''}" onclick={onToggle}>
+	<button
+		type="button"
+		class="round-button {active ? 'active' : ''}"
+		aria-label={label}
+		onclick={onToggle}
+	>
 		<FontAwesomeIcon {icon} />
 	</button>
 	<div class="label">{label}</div>
