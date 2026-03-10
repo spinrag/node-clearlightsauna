@@ -48,10 +48,11 @@ export function pressHold(
 	node.addEventListener('mousedown', startHold);
 	node.addEventListener('mouseup', clearHold);
 	node.addEventListener('mouseleave', cancelHold);
-	node.addEventListener('touchstart', (e) => {
+	const touchStartHandler = (e: TouchEvent) => {
 		e.preventDefault();
 		startHold(e);
-	});
+	};
+	node.addEventListener('touchstart', touchStartHandler, { passive: false });
 	node.addEventListener('touchend', clearHold);
 	node.addEventListener('touchcancel', cancelHold);
 
@@ -61,7 +62,7 @@ export function pressHold(
 			node.removeEventListener('mousedown', startHold);
 			node.removeEventListener('mouseup', clearHold);
 			node.removeEventListener('mouseleave', cancelHold);
-			node.removeEventListener('touchstart', startHold);
+			node.removeEventListener('touchstart', touchStartHandler);
 			node.removeEventListener('touchend', clearHold);
 			node.removeEventListener('touchcancel', cancelHold);
 		}
