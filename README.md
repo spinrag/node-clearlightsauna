@@ -24,10 +24,17 @@ A web-based control system for Clearlight sauna devices, featuring a SvelteKit f
 
 ### 1. Clone the Repository
 
+The `node-gizwits` device driver is included as a git submodule. Use `--recurse-submodules` so it's pulled automatically:
+
 ```bash
-git clone https://github.com/spinrag/node-gizwits.git
-git clone https://github.com/spinrag/node-clearlightsauna.git
+git clone --recurse-submodules https://github.com/spinrag/node-clearlightsauna.git
 cd node-clearlightsauna
+```
+
+If you already cloned without `--recurse-submodules`, run:
+
+```bash
+git submodule update --init --recursive
 ```
 
 ### 2. Install Dependencies
@@ -40,28 +47,36 @@ npm install -g pnpm
 
 # Install all dependencies for both frontend and backend
 pnpm install
-```
 
-Repeat for node-gizwits
-```bash
-cd ../node-gizwits
-
-npm install
+# Install node-gizwits dependencies
+cd lib/node-gizwits && npm install && cd ../..
 ```
 
 ### 3. Environment Configuration
 
-Create a `.env` file in the root directory:
+Copy the example and fill in your values:
+
+```bash
+cp .env.example backend/.env
+```
+
+Edit `backend/.env`:
 
 ```bash
 # Backend Configuration
 PORT=3000
 CLEARLIGHT_IP=192.168.1.100  # Replace with your device IP address
+API_TOKEN=change-me-to-a-random-secret
 
 # CORS Configuration
 ALLOWED_ORIGINS=http://localhost:8099,http://localhost:3000,https://*.example.com
 
-# Frontend Configuration (optional, defaults are used)
+# Logging (error, warn, info, debug)
+LOG_LEVEL=info
+
+# Frontend Configuration (Vite)
+VITE_SOCKET_HOST=http://localhost:3000
+VITE_API_TOKEN=change-me-to-a-random-secret
 VITE_DEV_MODE=true
 ```
 
@@ -69,8 +84,12 @@ VITE_DEV_MODE=true
 
 - `PORT`: Backend server port (default: 3000)
 - `CLEARLIGHT_IP`: IP address of your Clearlight device
+- `API_TOKEN`: Shared secret for HTTP and Socket.IO authentication
 - `ALLOWED_ORIGINS`: Comma-separated list of allowed origins for CORS
   - Supports wildcards like `http://localhost:*` and `https://*.example.com`
+- `LOG_LEVEL`: Winston logging level (default: warn)
+- `VITE_SOCKET_HOST`: Backend URL the frontend connects to
+- `VITE_API_TOKEN`: Token the frontend sends for authentication
 - `VITE_DEV_MODE`: Frontend development mode flag
 
 ### 4. Development
@@ -325,8 +344,12 @@ node-clearlightsauna/
 │   └── package.json         # Frontend dependencies
 ├── backend/                 # Node.js backend server
 │   ├── server.js            # Main server file
+│   ├── validation.js        # Control payload validation
+│   ├── test/                # Backend tests
 │   ├── public/              # Static files served by backend
 │   └── package.json         # Backend dependencies
+├── lib/
+│   └── node-gizwits/        # Device driver (git submodule)
 ├── package.json             # Root package.json (workspace)
 ├── pnpm-workspace.yaml      # pnpm workspace configuration
 └── README.md                # This file
