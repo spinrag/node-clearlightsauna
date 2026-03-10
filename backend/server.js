@@ -216,51 +216,40 @@ async function startServer() {
 		return true
 	}
 
-	// Pending attribute values waiting to be sent. When commands arrive faster
-	// than the device can process them, we keep only the latest value per key
-	// and send it once the previous command for that key completes.
-	const pendingAttributes = {}
-	const inflightAttributes = new Set()
-
-	async function sendAttribute(key, value) {
-		if (inflightAttributes.has(key)) {
-			// A command for this key is already in-flight — store the latest
-			// value so it gets sent when the current one finishes.
-			pendingAttributes[key] = value
-			logger.debug(`Queued ${key} = ${value} (previous command in-flight)`)
-			return
-		}
-
-		inflightAttributes.add(key)
-		try {
-			logger.debug(`Setting attribute: ${key} = ${value}`)
-			await device.setAttribute({ [key]: value })
-			logger.debug(`Successfully set ${key}`)
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'Unknown error')
-			logger.error(`Failed to set ${key}`, { error: errorMessage, key, value })
-		} finally {
-			inflightAttributes.delete(key)
-			// If a newer value was queued while we were in-flight, send it now
-			if (key in pendingAttributes) {
-				const nextValue = pendingAttributes[key]
-				delete pendingAttributes[key]
-				sendAttribute(key, nextValue)
-			}
-		}
-	}
+	// All control commands share device response type 0x94. Sending overlapping
+	// commands can lock up the physical device, so we drop commands while one
+	// is in-flight rather than queuing them. The user can retry manually.
+	let commandInFlight = false
 
 	async function handleControl(settings) {
-		logger.info('Handling device control', { settings })
-		for (const [key, value] of Object.entries(settings)) {
-			// The physical sauna only supports a 0–60 minute timer with no hour
-			// component. SET_HOUR is accepted by validation but has no practical
-			// effect on the device and may behave unpredictably.
-			if (key === 'SET_HOUR') {
-				logger.warn('SET_HOUR sent but physical controls have no hour component')
-			}
-			sendAttribute(key, value)
+		if (commandInFlight) {
+			logger.warn('Command dropped: device is still processing a previous command', { settings })
+			return { dropped: true }
 		}
+
+		commandInFlight = true
+		logger.info('Handling device control', { settings })
+
+		try {
+			for (const [key, value] of Object.entries(settings)) {
+				// The physical sauna only supports a 0–60 minute timer with no hour
+				// component. SET_HOUR is accepted by validation but has no practical
+				// effect on the device and may behave unpredictably.
+				if (key === 'SET_HOUR') {
+					logger.warn('SET_HOUR sent but physical controls have no hour component')
+				}
+				logger.debug(`Setting attribute: ${key} = ${value}`)
+				await device.setAttribute({ [key]: value })
+				logger.debug(`Successfully set ${key}`)
+			}
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'Unknown error')
+			logger.error('Device control failed', { error: errorMessage, settings })
+		} finally {
+			commandInFlight = false
+		}
+
+		return { dropped: false }
 	}
 
 	// HTTP endpoints for device actions
@@ -285,15 +274,17 @@ async function startServer() {
 		res.send({ status: 'Device resetting' })
 	})
 
-	app.post('/device/control', (req, res) => {
+	app.post('/device/control', async (req, res) => {
 		if (!requireDevice(res)) return
 		const { valid, errors, payload } = validateControlPayload(req.body)
 		if (!valid) {
 			logger.warn('Invalid control payload via HTTP', { errors, body: req.body })
 			return res.status(400).json({ error: 'Invalid control payload', details: errors })
 		}
-		logger.info('Device control requested', { options: payload })
-		device.control(payload)
+		const result = await handleControl(payload)
+		if (result.dropped) {
+			return res.status(429).json({ error: 'Device busy, try again' })
+		}
 		res.send({ status: 'Device controlled', settings: payload })
 	})
 
@@ -350,7 +341,7 @@ async function startServer() {
 			device.reset()
 		})
 
-		socket.on('control', (options) => {
+		socket.on('control', async (options) => {
 			if (!connected) return socket.emit('error', { error: 'Device not connected' })
 			const { valid, errors, payload } = validateControlPayload(options)
 			if (!valid) {
@@ -359,10 +350,10 @@ async function startServer() {
 				return
 			}
 			logger.info('Device control requested via socket', { socketId: socket.id, options: payload })
-			handleControl(payload).catch((error) => {
-				const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'Unknown error')
-				logger.error('Error handling control via socket', { error: errorMessage, socketId: socket.id, options: payload })
-			})
+			const result = await handleControl(payload)
+			if (result.dropped) {
+				socket.emit('error', { error: 'Device busy, try again' })
+			}
 		})
 
 		socket.on('disconnect', () => {
