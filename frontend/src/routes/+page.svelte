@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { writable } from 'svelte/store';
 	import { socket } from '$lib/socket';
 	import { pressHold } from '$lib/pressHold';
@@ -132,23 +132,31 @@
 		return startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 	}
 
+	function onConnected() {
+		if (devMode) console.log('socket connected');
+	}
+
+	function onAttributes(status: Partial<SaunaStatus>) {
+		if (devMode) console.log('status', status);
+		saunaStatus.update((currentStatus) => ({
+			...currentStatus,
+			...status
+		}));
+
+		if (status.SET_MINUTE !== undefined) SET_MINUTE = status.SET_MINUTE;
+		if (status.PRE_TIME_HOUR !== undefined) PRE_TIME_HOUR = status.PRE_TIME_HOUR;
+		if (status.PRE_TIME_MINUTE !== undefined) PRE_TIME_MINUTE = status.PRE_TIME_MINUTE;
+		if (status.PRE_TIME_FLAG !== undefined) PRE_TIME_FLAG = status.PRE_TIME_FLAG;
+	}
+
 	onMount(() => {
-		socket.on('connected', () => {
-			if (devMode) console.log('socket connected');
-		});
+		socket.on('connected', onConnected);
+		socket.on('attributes', onAttributes);
+	});
 
-		socket.on('attributes', (status) => {
-			if (devMode) console.log('status', status);
-			saunaStatus.update((currentStatus) => ({
-				...currentStatus,
-				...status
-			}));
-
-			if (status.SET_MINUTE !== undefined) SET_MINUTE = status.SET_MINUTE;
-			if (status.PRE_TIME_HOUR !== undefined) PRE_TIME_HOUR = status.PRE_TIME_HOUR;
-			if (status.PRE_TIME_MINUTE !== undefined) PRE_TIME_MINUTE = status.PRE_TIME_MINUTE;
-			if (status.PRE_TIME_FLAG !== undefined) PRE_TIME_FLAG = status.PRE_TIME_FLAG;
-		});
+	onDestroy(() => {
+		socket.off('connected', onConnected);
+		socket.off('attributes', onAttributes);
 	});
 </script>
 
