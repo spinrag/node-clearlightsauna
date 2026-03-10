@@ -12,8 +12,8 @@ const BOOLEAN_KEYS = [
 
 const NUMERIC_RANGES = {
 	SET_TEMP: [60, 180],
-	SET_HOUR: [0, 23],
-	SET_MINUTE: [0, 59],
+	SET_HOUR: [0, 23], // Physical controls have no hour component; rarely used
+	SET_MINUTE: [0, 60], // Physical sauna limits session time to 0–60 minutes
 	PRE_TIME_HOUR: [0, 23],
 	PRE_TIME_MINUTE: [0, 59],
 	LEFT: [0, 255],

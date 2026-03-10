@@ -76,7 +76,7 @@ describe('validateControlPayload', () => {
 		const ranges = {
 			SET_TEMP: [60, 180],
 			SET_HOUR: [0, 23],
-			SET_MINUTE: [0, 59],
+			SET_MINUTE: [0, 60],
 			PRE_TIME_HOUR: [0, 23],
 			PRE_TIME_MINUTE: [0, 59],
 			LEFT: [0, 255],
