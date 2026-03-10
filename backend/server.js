@@ -1,7 +1,6 @@
 // server.js
 const express = require('express')
 const http = require('http')
-const socketIo = require('socket.io')
 const { Server } = require('socket.io')
 const winston = require('winston')
 require('dotenv').config()
