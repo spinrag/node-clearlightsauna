@@ -206,8 +206,11 @@ async function startServer() {
 		// Process each setting one at a time
 		for (const [key, value] of Object.entries(settings)) {
 			logger.debug(`Setting attribute: ${key} = ${value}`)
+			// The physical sauna only supports a 0–60 minute timer with no hour
+			// component. SET_HOUR is accepted by validation but has no practical
+			// effect on the device and may behave unpredictably.
 			if (key === 'SET_HOUR') {
-				logger.warn('SET_HOUR attribute is known to be problematic')
+				logger.warn('SET_HOUR sent but physical controls have no hour component')
 			}
 			try {
 				await device.setAttribute({ [key]: value })

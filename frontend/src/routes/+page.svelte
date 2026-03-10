@@ -87,24 +87,19 @@
 		return 'bg-red-500' // Hot temperatures, red
 	}
 
-	// Function to adjust the time
+	// Adjust session time in minutes (0–60). The physical sauna controls only
+	// support a single 0–60 minute range with no hour component, so SET_HOUR
+	// is intentionally omitted here.
 	function adjustTime(change: number) {
-		// Update the minute value, and adjust the hour as needed
 		SET_MINUTE += change
 
 		if (SET_MINUTE > 60) {
 			SET_MINUTE = 60
-			SET_HOUR = (SET_HOUR + 1) % 24 // Keep hour within 24-hour range
-		} else if ($saunaStatus.SET_MINUTE < 0) {
-			SET_MINUTE = 59
-			SET_HOUR = (SET_HOUR - 1 + 24) % 24 // Handle negative hour wrapping
+		} else if (SET_MINUTE < 0) {
+			SET_MINUTE = 0
 		}
 
-		// Emit the updated time to the server
-		socket.emit('control', {
-			// SET_HOUR: 0,
-			SET_MINUTE
-		})
+		socket.emit('control', { SET_MINUTE })
 	}
 
 	function adjustPreTime(change: number) {
@@ -283,7 +278,7 @@
 		  <!-- Pre-Heat Toggle and Pre-Time Controls in Same Row -->
 		  <RoundButton icon={faClock} label="Pre-Heat" onToggle={() => toggleAttribute('PRE_TIME_FLAG')} active={PRE_TIME_FLAG} />
 	
-		  {#if PRE_TIME_FLAG || true}
+		  {#if PRE_TIME_FLAG}
 			<div class="flex items-center ml-4">
 			  <!-- Up/Down Buttons and Time Display for Pre-Time -->
 			  <div class="flex flex-col space-y-2 mr-4">
