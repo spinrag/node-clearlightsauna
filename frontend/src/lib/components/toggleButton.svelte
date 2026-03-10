@@ -1,6 +1,6 @@
 <script>
-	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome'
-	let { icon, label = '', active = false, onToggle } = $props()
+	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
+	let { icon, label = '', active = false, onToggle } = $props();
 </script>
 
 <div class="button-container">
