@@ -257,21 +257,21 @@ async function startServer() {
 		if (!requireDevice(res)) return
 		logger.info('Device start requested')
 		device.start()
-		res.send({ status: 'Device started' })
+		res.json({ status: 'Device started' })
 	})
 
 	app.post('/device/stop', (req, res) => {
 		if (!requireDevice(res)) return
 		logger.info('Device stop requested')
 		device.stop()
-		res.send({ status: 'Device stopped' })
+		res.json({ status: 'Device stopped' })
 	})
 
 	app.post('/device/reset', (req, res) => {
 		if (!requireDevice(res)) return
 		logger.info('Device reset requested')
 		device.reset()
-		res.send({ status: 'Device resetting' })
+		res.json({ status: 'Device resetting' })
 	})
 
 	app.post('/device/control', async (req, res) => {
@@ -285,7 +285,7 @@ async function startServer() {
 		if (result.dropped) {
 			return res.status(429).json({ error: 'Device busy, try again' })
 		}
-		res.send({ status: 'Device controlled', settings: payload })
+		res.json({ status: 'Device controlled', settings: payload })
 	})
 
 	// Socket.IO events for device actions
@@ -346,7 +346,7 @@ async function startServer() {
 			device.reset()
 		})
 
-		socket.on('control', async (options) => {
+		socket.on('control', async (options, ack) => {
 			if (!connected) return socket.emit('error', { error: 'Device not connected' })
 			const { valid, errors, payload } = validateControlPayload(options)
 			if (!valid) {
@@ -358,6 +358,8 @@ async function startServer() {
 			const result = await handleControl(payload)
 			if (result.dropped) {
 				socket.emit('error', { error: 'Device busy, try again' })
+			} else if (typeof ack === 'function') {
+				ack({ status: 'ok', settings: payload })
 			}
 		})
 
