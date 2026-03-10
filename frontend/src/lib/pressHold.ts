@@ -48,8 +48,11 @@ export function pressHold(
 	node.addEventListener('mousedown', startHold);
 	node.addEventListener('mouseup', clearHold);
 	node.addEventListener('mouseleave', cancelHold);
-	node.addEventListener('touchstart', startHold, { passive: true });
-	node.addEventListener('touchend', clearHold, { passive: true });
+	node.addEventListener('touchstart', (e) => {
+		e.preventDefault();
+		startHold(e);
+	});
+	node.addEventListener('touchend', clearHold);
 	node.addEventListener('touchcancel', cancelHold);
 
 	// Cleanup event listeners when the action is destroyed
