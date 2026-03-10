@@ -1,19 +1,17 @@
 {
 	"name": "clearlight-controls",
-	"version": "1.0.0",
+	"version": "2.0.0",
 	"private": true,
 	"scripts": {
 		"dev": "pnpm -r run dev",
 		"dev:frontend": "pnpm --filter frontend run dev",
 		"dev:backend": "pnpm --filter backend run dev",
 		"build": "pnpm -r run build",
-		"start": "pnpm --filter backend run start"
-	},
-	"dependencies": {
-
+		"start": "pnpm --filter backend run start",
+		"changelog": "node scripts/changelog.mjs"
 	},
 	"devDependencies": {
-		
+		"commit-and-tag-version": "^12.6.1"
 	},
 	"pnpm": {
 		"overrides": {
