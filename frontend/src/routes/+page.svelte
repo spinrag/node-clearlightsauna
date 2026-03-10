@@ -52,6 +52,10 @@
 	const devMode = import.meta.env.VITE_DEV_MODE === 'true';
 	if (devMode) console.log('devMode active', devMode);
 
+	// Connection state
+	let serverConnected = $state(false);
+	let deviceConnected = $state(false);
+
 	let SET_MINUTE = 55;
 
 	// Pre-time settings and flag
@@ -134,6 +138,18 @@
 
 	function onConnected() {
 		if (devMode) console.log('socket connected');
+		serverConnected = true;
+		socket.emit('requestStatus');
+	}
+
+	function onDisconnected() {
+		if (devMode) console.log('socket disconnected');
+		serverConnected = false;
+		deviceConnected = false;
+	}
+
+	function onDeviceStatus(status: { connected: boolean }) {
+		deviceConnected = status.connected;
 	}
 
 	function onAttributes(status: Partial<SaunaStatus>) {
@@ -150,12 +166,25 @@
 	}
 
 	onMount(() => {
-		socket.on('connected', onConnected);
+		socket.on('connect', onConnected);
+		socket.on('disconnect', onDisconnected);
+		socket.on('deviceStatus', onDeviceStatus);
 		socket.on('attributes', onAttributes);
+
+		// Socket.IO may already be connected by the time onMount fires,
+		// meaning we missed the initial connect + deviceStatus events.
+		// Re-fetch status by briefly disconnecting the listeners isn't needed;
+		// instead we just ask the backend to resend.
+		if (socket.connected) {
+			serverConnected = true;
+			socket.emit('requestStatus');
+		}
 	});
 
 	onDestroy(() => {
-		socket.off('connected', onConnected);
+		socket.off('connect', onConnected);
+		socket.off('disconnect', onDisconnected);
+		socket.off('deviceStatus', onDeviceStatus);
 		socket.off('attributes', onAttributes);
 	});
 </script>
@@ -345,4 +374,31 @@
 			{JSON.stringify($saunaStatus, null, 2)}
 		</pre>
 	{/if}
+</div>
+
+{#if !serverConnected}
+	<div class="fixed bottom-10 left-0 right-0 bg-red-700 text-white text-center py-2 px-4">
+		Cannot reach backend — controls unavailable
+	</div>
+{:else if !deviceConnected}
+	<div class="fixed bottom-10 left-0 right-0 bg-yellow-600 text-white text-center py-2 px-4">
+		Backend connected — waiting for sauna
+	</div>
+{/if}
+
+<div
+	class="fixed bottom-0 left-0 right-0 bg-gray-900 text-gray-400 text-xs py-1 px-4 flex justify-center gap-4"
+>
+	<span class="flex items-center gap-1">
+		<span
+			class="inline-block w-2 h-2 rounded-full {serverConnected ? 'bg-green-500' : 'bg-red-500'}"
+		></span>
+		Backend
+	</span>
+	<span class="flex items-center gap-1">
+		<span
+			class="inline-block w-2 h-2 rounded-full {deviceConnected ? 'bg-green-500' : 'bg-red-500'}"
+		></span>
+		Sauna
+	</span>
 </div>
