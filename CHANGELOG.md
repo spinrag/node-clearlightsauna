@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.3](https://github.com/spinrag/node-clearlightsauna/compare/v2.1.2...v2.1.3) (2026-03-16)
+
+
+### 👽 Bug Fixes
+
+* **BACKEND:** prevent duplicate notifications from hysteresis re-arm ([fed2f92](https://github.com/spinrag/node-clearlightsauna/commit/fed2f92a19d3fcab6ad4d563b93faba92707b2b1))
+
 ## [2.1.2](https://github.com/spinrag/node-clearlightsauna/compare/v2.1.1...v2.1.2) (2026-03-16)
 
 
