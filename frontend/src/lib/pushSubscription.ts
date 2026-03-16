@@ -87,6 +87,23 @@ export async function unsubscribeFromPush(subscription: PushSubscription): Promi
 	return true;
 }
 
+/** Fetch the stored threshold for a subscription from the server */
+export async function getSubscriptionStatus(
+	endpoint: string
+): Promise<{ threshold_temp: number | null; notified: boolean } | null> {
+	try {
+		const res = await fetch(`${SOCKET_HOST}/push/status`, {
+			method: 'POST',
+			headers: authHeaders(),
+			body: JSON.stringify({ endpoint })
+		});
+		if (!res.ok) return null;
+		return res.json();
+	} catch {
+		return null;
+	}
+}
+
 /** Get the existing push subscription if one exists */
 export async function getExistingSubscription(): Promise<PushSubscription | null> {
 	if (!('serviceWorker' in navigator)) return null;

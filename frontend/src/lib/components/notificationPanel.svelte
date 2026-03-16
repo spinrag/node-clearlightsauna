@@ -3,7 +3,8 @@
 		subscribeToPush,
 		unsubscribeFromPush,
 		setThreshold,
-		getExistingSubscription
+		getExistingSubscription,
+		getSubscriptionStatus
 	} from '$lib/pushSubscription';
 	import { onMount } from 'svelte';
 	import StepButton from './stepButton.svelte';
@@ -28,6 +29,10 @@
 		const existing = await getExistingSubscription();
 		if (existing) {
 			subscription = existing;
+			const status = await getSubscriptionStatus(existing.endpoint);
+			if (status) {
+				thresholdTemp = status.threshold_temp;
+			}
 		}
 	});
 
