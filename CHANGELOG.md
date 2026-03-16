@@ -3,21 +3,21 @@
 ## [2.1.4](https://github.com/spinrag/node-clearlightsauna/compare/v2.1.3...v2.1.4) (2026-03-16)
 
 
-### 🚀🚀 Features
+### ♨️ Features
 
 * **NOTIFICATIONS:** persist threshold state, add tests, update README ([b116eb5](https://github.com/spinrag/node-clearlightsauna/commit/b116eb5156ca335ba249bb5ffa748587ce53606f))
 
 ## [2.1.3](https://github.com/spinrag/node-clearlightsauna/compare/v2.1.2...v2.1.3) (2026-03-16)
 
 
-### 👽 Bug Fixes
+### 🧊 Bug Fixes
 
 * **BACKEND:** prevent duplicate notifications from hysteresis re-arm ([fed2f92](https://github.com/spinrag/node-clearlightsauna/commit/fed2f92a19d3fcab6ad4d563b93faba92707b2b1))
 
 ## [2.1.2](https://github.com/spinrag/node-clearlightsauna/compare/v2.1.1...v2.1.2) (2026-03-16)
 
 
-### 👽 Bug Fixes
+### 🧊 Bug Fixes
 
 * **BACKEND:** log client IP on Socket.IO connect, disconnect, and auth failures ([daf0c5f](https://github.com/spinrag/node-clearlightsauna/commit/daf0c5f7d113dd587a282b1f50b4e5021c6d89e7))
 * **FRONTEND:** prevent Socket.IO connection during SSR, bump cache version ([d8a6add](https://github.com/spinrag/node-clearlightsauna/commit/d8a6addb365cef40a7022069a3f5609d5b3db52b))
@@ -25,31 +25,31 @@
 ## [2.1.1](https://github.com/spinrag/node-clearlightsauna/compare/v2.1.0...v2.1.1) (2026-03-16)
 
 
-### 👽 Bug Fixes
+### 🧊 Bug Fixes
 
 * **FRONTEND:** bump service worker CACHE_VERSION to v2 for deploy ([e8b7946](https://github.com/spinrag/node-clearlightsauna/commit/e8b7946c54c6f533a76ce4e8f78fc8f739485595))
 
 ## [2.1.0](https://github.com/spinrag/node-clearlightsauna/compare/v2.0.0...v2.1.0) (2026-03-16)
 
 
-### 🚀🚀 Features
+### ♨️ Features
 
 * **NOTIFICATIONS:** add Web Push temperature threshold notifications ([95afdfe](https://github.com/spinrag/node-clearlightsauna/commit/95afdfe746b9ede0941c3f52fb52588e1768c08d))
 
 
-### 👽 Bug Fixes
+### 🧊 Bug Fixes
 
 * **FRONTEND:** mark touchstart listener as non-passive explicitly ([b55b5cd](https://github.com/spinrag/node-clearlightsauna/commit/b55b5cd84f091b0591804d86fc8edb62a063adde))
 
 
-### 🛰️ Chore
+### 🪵 Chore
 
 * update node-gizwits submodule (resolve npm audit vulnerabilities) ([f559622](https://github.com/spinrag/node-clearlightsauna/commit/f559622b01e5000fb71c4f1d66aecad9852a132c))
 
 ## [2.0.0](https://github.com/spinrag/node-clearlightsauna/compare/v1.0.0...v2.0.0) (2026-03-10)
 
 
-### 🚀🚀 Features
+### ♨️ Features
 
 * add /health endpoint and migrate toggleButton to Svelte 5 ([2da3168](https://github.com/spinrag/node-clearlightsauna/commit/2da3168dbea51f0e61f3efd7a462e0602148c2f5))
 * add connection status indicators and error banners ([f531878](https://github.com/spinrag/node-clearlightsauna/commit/f53187832ffb066f248247e19f87312e85ce787b))
@@ -63,7 +63,7 @@
 * use node-gizwits as git submodule, update README and add .env.example ([74fafa7](https://github.com/spinrag/node-clearlightsauna/commit/74fafa70e9e16dae2c4c4fb4e1c373a7d6adc181))
 
 
-### 👽 Bug Fixes
+### 🧊 Bug Fixes
 
 * **BACKEND:** drop overlapping device commands instead of queuing ([87ec4ba](https://github.com/spinrag/node-clearlightsauna/commit/87ec4ba16155dd832b0dbf6c6c20d0ec1149ed6f))
 * **BACKEND:** queue rapid-fire device commands to prevent overlap errors ([3a05690](https://github.com/spinrag/node-clearlightsauna/commit/3a05690e7e15b6b078c535d973e045fb838816c1))
@@ -77,12 +77,12 @@
 * **security:** resolve all pnpm audit vulnerabilities ([45defbf](https://github.com/spinrag/node-clearlightsauna/commit/45defbffedf7c178774e9a695b9c1520a08c0a3f))
 
 
-### 🌠 CICD
+### ⚙️ CICD
 
 * add GitHub Actions workflow for backend tests and frontend lint ([a01622b](https://github.com/spinrag/node-clearlightsauna/commit/a01622bdfd881be389182b5b287666916d5da900))
 
 
-### 🛰️ Chore
+### 🪵 Chore
 
 * **BACKEND:** remove redundant socketIo import ([4f38fd2](https://github.com/spinrag/node-clearlightsauna/commit/4f38fd24ea58699b2d9ca7553258ed514401351a))
 * clean up .gitignore duplicates and organize by category ([62ebacb](https://github.com/spinrag/node-clearlightsauna/commit/62ebacbfd5fd81f104e59d44107e6d9d98bf727c))
@@ -92,14 +92,14 @@
 * update pnpm-lock.yaml for @eslint/js dependency ([757de71](https://github.com/spinrag/node-clearlightsauna/commit/757de71c3332671edee85956b6340580957c659e))
 
 
-### 🛰️ Refactor
+### 💨 Refactor
 
 * **BACKEND:** replace prototype UI with status page ([288c0f2](https://github.com/spinrag/node-clearlightsauna/commit/288c0f2b86ecb68880cce6ddf6815f56c4dcdcf1))
 * **FRONTEND:** extract StepButton component, consolidate state ([dbb2dca](https://github.com/spinrag/node-clearlightsauna/commit/dbb2dcabbf6d3157ab1d970983eb8f30cdd0834c))
 
 ## 1.0.0 (2025-09-20)
 
-### 🚀🚀 Features
+### ♨️ Features
 
 * add initial controls ([0061deb](https://github.com/spinrag/node-clearlightsauna/commit/0061deb))
 * add support for PWA ([9f1124a](https://github.com/spinrag/node-clearlightsauna/commit/9f1124a))
@@ -110,7 +110,7 @@
 * generalize CORS domain wildcard settings for any subdomain ([d4beee4](https://github.com/spinrag/node-clearlightsauna/commit/d4beee4))
 * move to winston for backend logging ([ee15efb](https://github.com/spinrag/node-clearlightsauna/commit/ee15efb))
 
-### 👽 Bug Fixes
+### 🧊 Bug Fixes
 
 * correct zoom and background for PWA ([ecf26db](https://github.com/spinrag/node-clearlightsauna/commit/ecf26db))
 * change PWA status bar to just black ([b7bd082](https://github.com/spinrag/node-clearlightsauna/commit/b7bd082))
@@ -120,11 +120,11 @@
 * limit set time to 60 minutes until SET_HOUR is fixed in backend ([86f7159](https://github.com/spinrag/node-clearlightsauna/commit/86f7159))
 * problem with SET_MINUTE ([05d8335](https://github.com/spinrag/node-clearlightsauna/commit/05d8335))
 
-### 🚀 Improvements
+### 🌡️ Improvements
 
 * make pre-heat and set temp controls smoother ([ee3c4cc](https://github.com/spinrag/node-clearlightsauna/commit/ee3c4cc))
 
-### 🛰️ Chore
+### 🪵 Chore
 
 * initial commit ([5b12aa6](https://github.com/spinrag/node-clearlightsauna/commit/5b12aa6))
 * move to adapter-node for sveltekit adapter ([bdaeb13](https://github.com/spinrag/node-clearlightsauna/commit/bdaeb13))
