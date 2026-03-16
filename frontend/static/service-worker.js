@@ -1,5 +1,5 @@
 // Increment this version to trigger an update on connected clients
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `clearlight-${CACHE_VERSION}`;
 
 // Static assets to pre-cache on install
