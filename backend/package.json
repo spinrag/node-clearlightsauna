@@ -3,14 +3,17 @@
   "version": "2.0.0",
   "main": "server.js",
   "scripts": {
-    "dev": "nodemon server.js",
+    "dev": "nodemon --ignore data/ server.js",
     "start": "node server.js",
-    "test": "mocha test/**/*.test.js --timeout 5000"
+    "test": "mocha test/**/*.test.js --timeout 5000",
+    "test:push": "node test-push.js"
   },
   "dependencies": {
+    "better-sqlite3": "^12.8.0",
     "dotenv": "^16.5.0",
     "express": "^5.2.1",
     "socket.io": "^4.8.1",
+    "web-push": "^3.6.7",
     "winston": "^3.11.0"
   },
   "devDependencies": {

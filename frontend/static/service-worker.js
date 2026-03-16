@@ -9,6 +9,7 @@ const PRECACHE_URLS = ['/', '/manifest.json'];
 const NETWORK_ONLY_PATTERNS = [
 	'/device/',
 	'/health',
+	'/push/',
 	'/socket.io/',
 	'.hot-update.' // Vite HMR
 ];
@@ -39,9 +40,46 @@ self.addEventListener('activate', (event) => {
 	);
 });
 
+// Push: display notification from backend
+self.addEventListener('push', (event) => {
+	const data = event.data ? event.data.json() : {};
+	const title = data.title || 'Sauna Notification';
+	const options = {
+		body: data.body || '',
+		tag: data.tag || 'sauna-default',
+		icon: '/favicon.png',
+		badge: '/favicon.png',
+		vibrate: [200, 100, 200],
+		renotify: false
+	};
+	event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Notification click: focus or open the app
+self.addEventListener('notificationclick', (event) => {
+	event.notification.close();
+	event.waitUntil(
+		self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+			// Focus existing window if available
+			for (const client of clients) {
+				if ('focus' in client) {
+					return client.focus();
+				}
+			}
+			// Otherwise open a new window
+			return self.clients.openWindow('/');
+		})
+	);
+});
+
 // Fetch: network-first for pages, cache-first for static assets
 self.addEventListener('fetch', (event) => {
 	const url = event.request.url;
+
+	// Skip cross-origin requests entirely (Socket.IO, backend API, etc.)
+	if (!url.startsWith(self.location.origin)) {
+		return;
+	}
 
 	// Always go to network for API, Socket.IO, and HMR
 	if (isNetworkOnly(url)) {

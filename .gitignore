@@ -11,6 +11,9 @@ node_modules/
 logs/
 *.log
 
+# SQLite data
+backend/data/
+
 # OS
 .DS_Store
 Thumbs.db
