@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.2](https://github.com/spinrag/node-clearlightsauna/compare/v2.1.1...v2.1.2) (2026-03-16)
+
+
+### 👽 Bug Fixes
+
+* **BACKEND:** log client IP on Socket.IO connect, disconnect, and auth failures ([daf0c5f](https://github.com/spinrag/node-clearlightsauna/commit/daf0c5f7d113dd587a282b1f50b4e5021c6d89e7))
+* **FRONTEND:** prevent Socket.IO connection during SSR, bump cache version ([d8a6add](https://github.com/spinrag/node-clearlightsauna/commit/d8a6addb365cef40a7022069a3f5609d5b3db52b))
+
 ## [2.1.1](https://github.com/spinrag/node-clearlightsauna/compare/v2.1.0...v2.1.1) (2026-03-16)
 
 
