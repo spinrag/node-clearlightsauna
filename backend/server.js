@@ -157,13 +157,14 @@ io.use((socket, next) => {
 		return next(new Error('Server not configured for authentication'))
 	}
 
+	const clientIp = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
 	const token = socket.handshake.auth?.token
 	if (!token) {
-		logger.warn('Socket auth rejected: no token provided', { socketId: socket.id })
+		logger.warn('Socket auth rejected: no token provided', { socketId: socket.id, clientIp })
 		return next(new Error('Authentication token required'))
 	}
 	if (token !== API_TOKEN) {
-		logger.warn('Socket auth rejected: token mismatch', { socketId: socket.id })
+		logger.warn('Socket auth rejected: token mismatch', { socketId: socket.id, clientIp })
 		return next(new Error('Invalid authentication token'))
 	}
 
@@ -376,7 +377,8 @@ async function startServer() {
 
 	// Socket.IO events for device actions
 	io.on('connection', async (socket) => {
-		logger.info('Client connected', { socketId: socket.id, deviceSettings })
+		const clientIp = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
+		logger.info('Client connected', { socketId: socket.id, clientIp })
 
 		// Send the initial device and connection status to the client
 		socket.emit('deviceStatus', { connected })
@@ -449,8 +451,8 @@ async function startServer() {
 			}
 		})
 
-		socket.on('disconnect', () => {
-			logger.info('Client disconnected', { socketId: socket.id })
+		socket.on('disconnect', (reason) => {
+			logger.info('Client disconnected', { socketId: socket.id, clientIp, reason })
 			// Remove listeners to prevent memory leaks
 			device.removeListener('data', dataListener)
 			device.removeListener('control', controlListener)
