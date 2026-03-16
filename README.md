@@ -11,6 +11,7 @@ A web-based control system for Clearlight sauna devices, featuring a SvelteKit f
 - Socket.IO for live communication between frontend and backend
 - Device connection management and error handling
 - Responsive design with touch support
+- Temperature threshold push notifications (works when app is backgrounded)
 
 ## Prerequisites
 
@@ -92,6 +93,22 @@ VITE_DEV_MODE=true
 - `VITE_API_TOKEN`: Token the frontend sends for authentication
 - `VITE_DEV_MODE`: Frontend development mode flag
 
+#### Push Notification Setup (Optional)
+
+Generate VAPID keys for Web Push notifications:
+
+```bash
+node backend/generate-vapid-keys.js
+```
+
+Add the output to your `backend/.env`:
+
+```bash
+VAPID_PUBLIC_KEY=<generated-public-key>
+VAPID_PRIVATE_KEY=<generated-private-key>
+VAPID_SUBJECT=mailto:your-email@example.com
+```
+
 ### 4. Development
 
 #### Start Development Servers
@@ -119,6 +136,9 @@ pnpm build                 # Build both frontend and backend
 # Production
 pnpm start                 # Start backend server
 PORT=8099 node frontend/build # Start frontend server on port 8099
+
+# Push Notifications
+pnpm --filter backend test:push  # Send test push to all active subscriptions
 ```
 
 ## Production Deployment
@@ -346,6 +366,12 @@ node-clearlightsauna/
 ├── backend/                 # Node.js backend server
 │   ├── server.js            # Main server file
 │   ├── validation.js        # Control payload validation
+│   ├── db.js               # SQLite database (push subscriptions)
+│   ├── push.js             # Web Push VAPID configuration
+│   ├── notifications.js    # Temperature threshold notification logic
+│   ├── generate-vapid-keys.js  # One-time VAPID key generation
+│   ├── test-push.js        # Manual push notification test
+│   ├── data/               # SQLite database files (gitignored)
 │   ├── test/                # Backend tests
 │   ├── public/              # Static files served by backend
 │   └── package.json         # Backend dependencies
@@ -381,6 +407,12 @@ node-clearlightsauna/
 5. **Authentication Issues**
    - Verify the `.htpasswd` file exists and has correct permissions
    - Check that the IP allow/deny rules are configured correctly
+
+6. **Push Notifications Not Working**
+   - Ensure VAPID keys are generated and added to `.env`
+   - Push notifications require HTTPS or localhost
+   - Check `backend/data/sauna.db` exists (auto-created on first start)
+   - Test with `pnpm --filter backend test:push`
 
 ### Logs
 

@@ -197,6 +197,18 @@ async function startServer() {
 		res.json({ publicKey: VAPID_PUBLIC_KEY })
 	})
 
+	app.post('/push/status', requireAuth, (req, res) => {
+		const { endpoint } = req.body || {}
+		if (!endpoint) {
+			return res.status(400).json({ error: 'endpoint required' })
+		}
+		const sub = stmts.getSubscriptionByEndpoint.get(endpoint)
+		if (!sub) {
+			return res.status(404).json({ error: 'Subscription not found' })
+		}
+		res.json({ threshold_temp: sub.threshold_temp, notified: !!sub.notified })
+	})
+
 	app.post('/push/subscribe', requireAuth, (req, res) => {
 		const { endpoint, keys } = req.body || {}
 		if (!endpoint || !keys?.p256dh || !keys?.auth) {
