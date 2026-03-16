@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.5](https://github.com/spinrag/node-clearlightsauna/compare/v2.1.4...v2.1.5) (2026-03-16)
+
+
+### 🪵 Chore
+
+* **CHANGELOG:** replace space-themed emojis with sauna-themed ones ([2990670](https://github.com/spinrag/node-clearlightsauna/commit/299067066ec1aac80c80bdf793661f8b1d48737c))
+
 ## [2.1.4](https://github.com/spinrag/node-clearlightsauna/compare/v2.1.3...v2.1.4) (2026-03-16)
 
 
