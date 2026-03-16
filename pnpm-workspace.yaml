@@ -2,6 +2,4 @@ packages:
   - frontend
   - backend
 
-onlyBuiltDependencies:
-  - '@tailwindcss/oxide'
-  - esbuild
+onlyBuiltDependencies: '["better-sqlite3"]'

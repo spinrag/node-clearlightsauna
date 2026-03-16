@@ -7,6 +7,9 @@ require('dotenv').config()
 
 const { ClearlightDevice } = require('../lib/node-gizwits/index')
 const { validateControlPayload } = require('./validation')
+const { stmts } = require('./db')
+const { VAPID_PUBLIC_KEY, configured: pushConfigured } = require('./push')
+const { checkThresholds } = require('./notifications')
 
 // Configure Winston logger
 const logger = winston.createLogger({
@@ -103,6 +106,24 @@ const io = new Server(server, {
 	}
 })
 
+// CORS middleware scoped to /push/ routes only (Socket.IO handles its own CORS)
+function pushCors(req, res, next) {
+	const origin = req.headers.origin
+	if (origin) {
+		const allowed = allowedOrigins.some(o =>
+			o instanceof RegExp ? o.test(origin) : o === origin
+		)
+		if (allowed) {
+			res.setHeader('Access-Control-Allow-Origin', origin)
+			res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+			res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+		}
+	}
+	if (req.method === 'OPTIONS') return res.sendStatus(204)
+	next()
+}
+app.use('/push', pushCors)
+
 app.use(express.json())
 app.use(express.static('public'))
 
@@ -166,7 +187,60 @@ async function startServer() {
 			uptime: process.uptime()
 		})
 	})
+	// --- Push notification endpoints ---
+
+	app.get('/push/vapid-public-key', (req, res) => {
+		if (!VAPID_PUBLIC_KEY) {
+			return res.status(503).json({ error: 'VAPID keys not configured' })
+		}
+		res.json({ publicKey: VAPID_PUBLIC_KEY })
+	})
+
+	app.post('/push/subscribe', requireAuth, (req, res) => {
+		const { endpoint, keys } = req.body || {}
+		if (!endpoint || !keys?.p256dh || !keys?.auth) {
+			return res.status(400).json({ error: 'Invalid subscription: endpoint and keys required' })
+		}
+		stmts.upsertSubscription.run({
+			endpoint,
+			keys_p256dh: keys.p256dh,
+			keys_auth: keys.auth,
+		})
+		logger.info('Push subscription registered', { endpoint: endpoint.slice(-20) })
+		res.json({ status: 'subscribed' })
+	})
+
+	app.put('/push/threshold', requireAuth, (req, res) => {
+		const { endpoint, threshold_temp } = req.body || {}
+		if (!endpoint) {
+			return res.status(400).json({ error: 'endpoint required' })
+		}
+		if (threshold_temp != null && (typeof threshold_temp !== 'number' || threshold_temp < 80 || threshold_temp > 180)) {
+			return res.status(400).json({ error: 'threshold_temp must be 80-180 or null to disable' })
+		}
+		const result = stmts.setThreshold.run({
+			endpoint,
+			threshold_temp: threshold_temp ?? null,
+		})
+		if (result.changes === 0) {
+			return res.status(404).json({ error: 'Subscription not found — subscribe first' })
+		}
+		logger.info('Push threshold updated', { endpoint: endpoint.slice(-20), threshold_temp })
+		res.json({ status: 'threshold updated', threshold_temp })
+	})
+
+	app.delete('/push/subscribe', requireAuth, (req, res) => {
+		const { endpoint } = req.body || {}
+		if (!endpoint) {
+			return res.status(400).json({ error: 'endpoint required' })
+		}
+		stmts.deleteSubscription.run(endpoint)
+		logger.info('Push subscription removed', { endpoint: endpoint.slice(-20) })
+		res.json({ status: 'unsubscribed' })
+	})
+
 	let deviceSettings = {}
+	let prevPowerFlag = false
 
 	// Set max listeners to prevent memory leak warnings
 	device.setMaxListeners(20);
@@ -204,7 +278,19 @@ async function startServer() {
 				return acc
 			}, {})
 		})
+
+		// Detect power-off transition for notification re-arm
+		const powerOff = prevPowerFlag && !data.power_flag
+		prevPowerFlag = !!data.power_flag
+
 		deviceSettings = data
+
+		// Check push notification thresholds
+		if (pushConfigured && data.CURRENT_TEMP != null) {
+			checkThresholds(data.CURRENT_TEMP, { powerOff }, logger).catch(err => {
+				logger.error('Threshold check failed', { error: err.message })
+			})
+		}
     })
 
 	function requireDevice(res) {

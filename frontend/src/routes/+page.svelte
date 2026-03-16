@@ -4,6 +4,7 @@
 
 	import RoundButton from '$lib/components/toggleButton.svelte';
 	import StepButton from '$lib/components/stepButton.svelte';
+	import NotificationPanel from '$lib/components/notificationPanel.svelte';
 	import { faPowerOff, faLightbulb, faClock } from '@fortawesome/free-solid-svg-icons';
 
 	interface SaunaStatus {
@@ -279,6 +280,9 @@
 			<div class="text-lg font-semibold mt-4">Start Time: {calculateStartTime()}</div>
 		{/if}
 	</div>
+
+	<!-- Notification -->
+	<NotificationPanel currentTemp={status.CURRENT_TEMP} />
 
 	{#if devMode}
 		<pre class="bg-white text-gray-800 p-4 rounded-md shadow-md mt-4">
