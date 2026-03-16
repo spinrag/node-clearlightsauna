@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.4](https://github.com/spinrag/node-clearlightsauna/compare/v2.1.3...v2.1.4) (2026-03-16)
+
+
+### 🚀🚀 Features
+
+* **NOTIFICATIONS:** persist threshold state, add tests, update README ([b116eb5](https://github.com/spinrag/node-clearlightsauna/commit/b116eb5156ca335ba249bb5ffa748587ce53606f))
+
 ## [2.1.3](https://github.com/spinrag/node-clearlightsauna/compare/v2.1.2...v2.1.3) (2026-03-16)
 
 
