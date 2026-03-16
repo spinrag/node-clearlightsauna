@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.1.0](https://github.com/spinrag/node-clearlightsauna/compare/v2.0.0...v2.1.0) (2026-03-16)
+
+
+### 🚀🚀 Features
+
+* **NOTIFICATIONS:** add Web Push temperature threshold notifications ([95afdfe](https://github.com/spinrag/node-clearlightsauna/commit/95afdfe746b9ede0941c3f52fb52588e1768c08d))
+
+
+### 👽 Bug Fixes
+
+* **FRONTEND:** mark touchstart listener as non-passive explicitly ([b55b5cd](https://github.com/spinrag/node-clearlightsauna/commit/b55b5cd84f091b0591804d86fc8edb62a063adde))
+
+
+### 🛰️ Chore
+
+* update node-gizwits submodule (resolve npm audit vulnerabilities) ([f559622](https://github.com/spinrag/node-clearlightsauna/commit/f559622b01e5000fb71c4f1d66aecad9852a132c))
+
 ## [2.0.0](https://github.com/spinrag/node-clearlightsauna/compare/v1.0.0...v2.0.0) (2026-03-10)
 
 

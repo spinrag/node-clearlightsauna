@@ -1,6 +1,6 @@
 {
 	"name": "clearlight-controls",
-	"version": "2.0.0",
+	"version": "2.1.0",
 	"private": true,
 	"scripts": {
 		"dev": "pnpm -r run dev",
@@ -14,7 +14,9 @@
 		"commit-and-tag-version": "^12.6.1"
 	},
 	"pnpm": {
-		"onlyBuiltDependencies": ["better-sqlite3"],
+		"onlyBuiltDependencies": [
+			"better-sqlite3"
+		],
 		"overrides": {
 			"rollup": ">=4.59.0",
 			"minimatch@>=9.0.0 <9.0.7": ">=9.0.7",
