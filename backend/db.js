@@ -64,10 +64,9 @@ const stmts = {
     WHERE notified = 1
   `),
 
-	rearmByHysteresis: db.prepare(`
-    UPDATE push_subscriptions
-    SET notified = 0, updated_at = datetime('now')
-    WHERE notified = 1 AND threshold_temp - ? >= 5
+	rearmOne: db.prepare(`
+    UPDATE push_subscriptions SET notified = 0, updated_at = datetime('now')
+    WHERE id = ?
   `),
 
 	getSubscriptionByEndpoint: db.prepare(`
