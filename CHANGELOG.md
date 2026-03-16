@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1](https://github.com/spinrag/node-clearlightsauna/compare/v2.1.0...v2.1.1) (2026-03-16)
+
+
+### 👽 Bug Fixes
+
+* **FRONTEND:** bump service worker CACHE_VERSION to v2 for deploy ([e8b7946](https://github.com/spinrag/node-clearlightsauna/commit/e8b7946c54c6f533a76ce4e8f78fc8f739485595))
+
 ## [2.1.0](https://github.com/spinrag/node-clearlightsauna/compare/v2.0.0...v2.1.0) (2026-03-16)
 
 
