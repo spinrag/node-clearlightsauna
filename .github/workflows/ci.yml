@@ -30,9 +30,9 @@ jobs:
         working-directory: lib/node-gizwits
         run: npm install
 
-      - name: Run backend tests
+      - name: Run backend tests with coverage
         working-directory: backend
-        run: pnpm test
+        run: pnpm test:coverage
 
   frontend-lint:
     runs-on: ubuntu-latest
