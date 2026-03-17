@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "2.1.5",
+  "version": "2.2.0",
   "main": "server.js",
   "scripts": {
     "dev": "nodemon --ignore data/ server.js",
