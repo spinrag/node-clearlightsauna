@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.2.0](https://github.com/spinrag/node-clearlightsauna/compare/v2.1.5...v2.2.0) (2026-03-17)
+
+
+### ♨️ Features
+
+* **BACKEND:** add push endpoint tests, fix broken DELETE unsubscribe ([e762cb7](https://github.com/spinrag/node-clearlightsauna/commit/e762cb7ae132fb577467c53cef4656a4b179dd83))
+
+
+### 🧊 Bug Fixes
+
+* **BACKEND:** remove dead control echo listener and non-existent device methods ([4f4cd28](https://github.com/spinrag/node-clearlightsauna/commit/4f4cd283e759050128132f0e4064110a95026cca)), closes [#6](https://github.com/spinrag/node-clearlightsauna/issues/6) [#7](https://github.com/spinrag/node-clearlightsauna/issues/7)
+
+
+### ⚙️ Tests
+
+* **BACKEND:** add device lifecycle and control tests ([2af4e33](https://github.com/spinrag/node-clearlightsauna/commit/2af4e33134dfaf6680e5c1a08e7f23bb2a38afc5))
+* **BACKEND:** add Socket.IO handler tests ([1737947](https://github.com/spinrag/node-clearlightsauna/commit/1737947044cb4cf4373f0f20f4af4930b8ac0154))
+
+
+### ⚙️ CICD
+
+* **CI:** add coverage reporting with 70% line threshold ([b828ec1](https://github.com/spinrag/node-clearlightsauna/commit/b828ec117da73f7dfd2bf4982ad928a78bb1f3b8))
+
 ## [2.1.5](https://github.com/spinrag/node-clearlightsauna/compare/v2.1.4...v2.1.5) (2026-03-16)
 
 
