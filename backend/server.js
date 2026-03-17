@@ -351,28 +351,8 @@ async function startServer() {
 		return { dropped: false }
 	}
 
-	// HTTP endpoints for device actions
-	app.post('/device/start', (req, res) => {
-		if (!requireDevice(res)) return
-		logger.info('Device start requested')
-		device.start()
-		res.json({ status: 'Device started' })
-	})
-
-	app.post('/device/stop', (req, res) => {
-		if (!requireDevice(res)) return
-		logger.info('Device stop requested')
-		device.stop()
-		res.json({ status: 'Device stopped' })
-	})
-
-	app.post('/device/reset', (req, res) => {
-		if (!requireDevice(res)) return
-		logger.info('Device reset requested')
-		device.reset()
-		res.json({ status: 'Device resetting' })
-	})
-
+	// HTTP endpoint for device control (start/stop/reset removed — ClearlightDevice
+	// has no such methods; all control goes through setAttribute via handleControl)
 	app.post('/device/control', async (req, res) => {
 		if (!requireDevice(res)) return
 		const { valid, errors, payload } = validateControlPayload(req.body)
@@ -411,40 +391,8 @@ async function startServer() {
 			socket.emit('attributes', deviceSettings)
 		}
 
-		const controlListener = (settings) => {
-			logger.debug('Device control event', { settings })
-			socket.emit('attributes', settings)
-			(async () => {
-				await device.setAttribute(settings)
-			})().catch((error) => {
-				const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'Unknown error');
-				logger.error('Error setting attribute from control event', { error: errorMessage, settings })
-			})
-		}
-
 		// Update the client when the device status changes
 		device.on('data', dataListener)
-
-		// Update the client when device attributes/settings change
-		device.on('control', controlListener)
-
-		socket.on('start', () => {
-			if (!connected) return socket.emit('error', { error: 'Device not connected' })
-			logger.info('Device start requested via socket', { socketId: socket.id })
-			device.start()
-		})
-
-		socket.on('stop', () => {
-			if (!connected) return socket.emit('error', { error: 'Device not connected' })
-			logger.info('Device stop requested via socket', { socketId: socket.id })
-			device.stop()
-		})
-
-		socket.on('reset', () => {
-			if (!connected) return socket.emit('error', { error: 'Device not connected' })
-			logger.info('Device reset requested via socket', { socketId: socket.id })
-			device.reset()
-		})
 
 		socket.on('control', async (options, ack) => {
 			if (!connected) return socket.emit('error', { error: 'Device not connected' })
@@ -467,7 +415,6 @@ async function startServer() {
 			logger.info('Client disconnected', { socketId: socket.id, clientIp, reason })
 			// Remove listeners to prevent memory leaks
 			device.removeListener('data', dataListener)
-			device.removeListener('control', controlListener)
 		})
 	})
 
