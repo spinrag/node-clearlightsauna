@@ -242,7 +242,7 @@ async function startServer() {
 		res.json({ status: 'threshold updated', threshold_temp })
 	})
 
-	app.delete('/push/subscribe', requireAuth, (req, res) => {
+	app.post('/push/unsubscribe', requireAuth, (req, res) => {
 		const { endpoint } = req.body || {}
 		if (!endpoint) {
 			return res.status(400).json({ error: 'endpoint required' })
