@@ -6,6 +6,7 @@
     "dev": "nodemon --ignore data/ server.js",
     "start": "node server.js",
     "test": "mocha test/**/*.test.js --timeout 5000",
+    "test:coverage": "c8 --check-coverage --lines 70 mocha test/**/*.test.js --timeout 5000",
     "test:push": "node test-push.js"
   },
   "dependencies": {
@@ -17,6 +18,7 @@
     "winston": "^3.11.0"
   },
   "devDependencies": {
+    "c8": "^11.0.0",
     "chai": "^6.2.2",
     "mocha": "^11.7.5",
     "nodemon": "^3.1.14",
