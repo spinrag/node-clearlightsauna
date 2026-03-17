@@ -77,8 +77,8 @@ export async function setThreshold(
 export async function unsubscribeFromPush(subscription: PushSubscription): Promise<boolean> {
 	const endpoint = subscription.endpoint;
 
-	await fetch(`${SOCKET_HOST}/push/subscribe`, {
-		method: 'DELETE',
+	await fetch(`${SOCKET_HOST}/push/unsubscribe`, {
+		method: 'POST',
 		headers: authHeaders(),
 		body: JSON.stringify({ endpoint })
 	});
