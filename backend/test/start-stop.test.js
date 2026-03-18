@@ -4,7 +4,8 @@ const http = require('http')
 const express = require('express')
 const EventEmitter = require('events')
 
-const TOKEN = 'test-start-stop'
+const BEARER_TOKEN = 'test-bearer-token'
+const API_KEY = 'test-api-key'
 
 function createApp() {
 	const app = express()
@@ -23,14 +24,18 @@ function createApp() {
 	function requireAuth(req, res, next) {
 		const header = req.headers.authorization
 		const queryToken = req.query.token
-		let token
+
 		if (header && header.startsWith('Bearer ')) {
-			token = header.slice(7)
+			if (header.slice(7) !== BEARER_TOKEN) {
+				return res.status(403).json({ error: 'Invalid token' })
+			}
 		} else if (queryToken) {
-			token = queryToken
+			if (queryToken !== API_KEY) {
+				return res.status(403).json({ error: 'Invalid API key' })
+			}
+		} else {
+			return res.status(401).json({ error: 'Missing auth' })
 		}
-		if (!token) return res.status(401).json({ error: 'Missing auth' })
-		if (token !== TOKEN) return res.status(403).json({ error: 'Invalid token' })
 		next()
 	}
 
@@ -109,7 +114,7 @@ function request(port, method, path, { headers = {}, body } = {}) {
 	})
 }
 
-const auth = { Authorization: `Bearer ${TOKEN}` }
+const auth = { Authorization: `Bearer ${BEARER_TOKEN}` }
 
 describe('/device/start', () => {
 	let testServer, ctx, port
@@ -133,7 +138,7 @@ describe('/device/start', () => {
 
 	describe('GET with query params', () => {
 		it('starts sauna with token, time, and temp', async () => {
-			const res = await request(port, 'GET', `/device/start?token=${TOKEN}&time=30&temp=150`)
+			const res = await request(port, 'GET', `/device/start?token=${API_KEY}&time=30&temp=150`)
 			expect(res.status).to.equal(200)
 			expect(res.body.status).to.equal('Sauna started')
 			expect(res.body.time).to.equal(30)
@@ -149,24 +154,24 @@ describe('/device/start', () => {
 		})
 
 		it('rejects missing time', async () => {
-			const res = await request(port, 'GET', `/device/start?token=${TOKEN}&temp=150`)
+			const res = await request(port, 'GET', `/device/start?token=${API_KEY}&temp=150`)
 			expect(res.status).to.equal(400)
 			expect(res.body.error).to.match(/time/)
 		})
 
 		it('rejects missing temp', async () => {
-			const res = await request(port, 'GET', `/device/start?token=${TOKEN}&time=30`)
+			const res = await request(port, 'GET', `/device/start?token=${API_KEY}&time=30`)
 			expect(res.status).to.equal(400)
 			expect(res.body.error).to.match(/temp/)
 		})
 
 		it('rejects time out of range', async () => {
-			const res = await request(port, 'GET', `/device/start?token=${TOKEN}&time=61&temp=150`)
+			const res = await request(port, 'GET', `/device/start?token=${API_KEY}&time=61&temp=150`)
 			expect(res.status).to.equal(400)
 		})
 
 		it('rejects temp out of range', async () => {
-			const res = await request(port, 'GET', `/device/start?token=${TOKEN}&time=30&temp=200`)
+			const res = await request(port, 'GET', `/device/start?token=${API_KEY}&time=30&temp=200`)
 			expect(res.status).to.equal(400)
 		})
 	})
@@ -186,13 +191,13 @@ describe('/device/start', () => {
 	describe('guards', () => {
 		it('returns 503 when device disconnected', async () => {
 			ctx.setConnected(false)
-			const res = await request(port, 'GET', `/device/start?token=${TOKEN}&time=30&temp=150`)
+			const res = await request(port, 'GET', `/device/start?token=${API_KEY}&time=30&temp=150`)
 			expect(res.status).to.equal(503)
 		})
 
 		it('returns 429 when command in-flight', async () => {
 			ctx.setCommandInFlight(true)
-			const res = await request(port, 'GET', `/device/start?token=${TOKEN}&time=30&temp=150`)
+			const res = await request(port, 'GET', `/device/start?token=${API_KEY}&time=30&temp=150`)
 			expect(res.status).to.equal(429)
 		})
 	})
@@ -219,7 +224,7 @@ describe('/device/stop', () => {
 	})
 
 	it('stops sauna via GET with query token', async () => {
-		const res = await request(port, 'GET', `/device/stop?token=${TOKEN}`)
+		const res = await request(port, 'GET', `/device/stop?token=${API_KEY}`)
 		expect(res.status).to.equal(200)
 		expect(res.body.status).to.equal('Sauna stopped')
 		expect(ctx.device.setAttributeCalls).to.deep.include({ power_flag: false })
@@ -238,7 +243,7 @@ describe('/device/stop', () => {
 
 	it('returns 503 when device disconnected', async () => {
 		ctx.setConnected(false)
-		const res = await request(port, 'GET', `/device/stop?token=${TOKEN}`)
+		const res = await request(port, 'GET', `/device/stop?token=${API_KEY}`)
 		expect(res.status).to.equal(503)
 	})
 })
@@ -263,7 +268,7 @@ describe('requireAuth query token fallback', () => {
 	})
 
 	it('accepts query param token', async () => {
-		const res = await request(port, 'GET', `/device/stop?token=${TOKEN}`)
+		const res = await request(port, 'GET', `/device/stop?token=${API_KEY}`)
 		expect(res.status).to.equal(200)
 	})
 
