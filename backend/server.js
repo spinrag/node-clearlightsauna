@@ -130,6 +130,7 @@ app.use(express.static('public'))
 // --- Authentication ---
 
 const API_TOKEN = process.env.API_TOKEN
+const API_KEY = process.env.API_KEY
 
 function requireAuth(req, res, next) {
 	if (!API_TOKEN) {
@@ -137,22 +138,23 @@ function requireAuth(req, res, next) {
 		return res.status(503).json({ error: 'Server not configured for authentication' })
 	}
 
-	// Accept token from Authorization header or ?token= query param
+	// Accept token from Authorization header or ?token= query param (API_KEY)
 	const header = req.headers.authorization
 	const queryToken = req.query.token
 
-	let token
 	if (header && header.startsWith('Bearer ')) {
-		token = header.slice(7)
+		if (header.slice(7) !== API_TOKEN) {
+			return res.status(403).json({ error: 'Invalid token' })
+		}
 	} else if (queryToken) {
-		token = queryToken
-	}
-
-	if (!token) {
+		if (!API_KEY) {
+			return res.status(503).json({ error: 'API_KEY not configured for URL-based auth' })
+		}
+		if (queryToken !== API_KEY) {
+			return res.status(403).json({ error: 'Invalid API key' })
+		}
+	} else {
 		return res.status(401).json({ error: 'Missing authentication — use Authorization header or ?token= query param' })
-	}
-	if (token !== API_TOKEN) {
-		return res.status(403).json({ error: 'Invalid token' })
 	}
 
 	next()
