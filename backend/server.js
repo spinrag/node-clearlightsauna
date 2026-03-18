@@ -137,12 +137,20 @@ function requireAuth(req, res, next) {
 		return res.status(503).json({ error: 'Server not configured for authentication' })
 	}
 
+	// Accept token from Authorization header or ?token= query param
 	const header = req.headers.authorization
-	if (!header || !header.startsWith('Bearer ')) {
-		return res.status(401).json({ error: 'Missing or malformed Authorization header' })
+	const queryToken = req.query.token
+
+	let token
+	if (header && header.startsWith('Bearer ')) {
+		token = header.slice(7)
+	} else if (queryToken) {
+		token = queryToken
 	}
 
-	const token = header.slice(7)
+	if (!token) {
+		return res.status(401).json({ error: 'Missing authentication — use Authorization header or ?token= query param' })
+	}
 	if (token !== API_TOKEN) {
 		return res.status(403).json({ error: 'Invalid token' })
 	}
@@ -351,8 +359,42 @@ async function startServer() {
 		return { dropped: false }
 	}
 
-	// HTTP endpoint for device control (start/stop/reset removed — ClearlightDevice
-	// has no such methods; all control goes through setAttribute via handleControl)
+	// Convenience endpoints for automation (curl, Home Assistant, webhooks)
+	// Support both GET with query params and POST with JSON body.
+
+	app.all('/device/start', async (req, res) => {
+		if (!requireDevice(res)) return
+
+		const time = Number(req.query.time ?? req.body?.time)
+		const temp = Number(req.query.temp ?? req.body?.temp)
+
+		if (!time || !Number.isInteger(time) || time < 1 || time > 60) {
+			return res.status(400).json({ error: 'time is required (1-60 minutes)' })
+		}
+		if (!temp || !Number.isInteger(temp) || temp < 60 || temp > 180) {
+			return res.status(400).json({ error: 'temp is required (60-180°F)' })
+		}
+
+		const payload = { power_flag: true, SET_MINUTE: time, SET_TEMP: temp }
+		const result = await handleControl(payload)
+		if (result.dropped) {
+			return res.status(429).json({ error: 'Device busy, try again' })
+		}
+		logger.info('Device started via HTTP', { time, temp })
+		res.json({ status: 'Sauna started', time, temp })
+	})
+
+	app.all('/device/stop', async (req, res) => {
+		if (!requireDevice(res)) return
+
+		const result = await handleControl({ power_flag: false })
+		if (result.dropped) {
+			return res.status(429).json({ error: 'Device busy, try again' })
+		}
+		logger.info('Device stopped via HTTP')
+		res.json({ status: 'Sauna stopped' })
+	})
+
 	app.post('/device/control', async (req, res) => {
 		if (!requireDevice(res)) return
 		const { valid, errors, payload } = validateControlPayload(req.body)
