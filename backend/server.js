@@ -8,6 +8,7 @@ require('dotenv').config()
 const { ClearlightDevice } = require('../lib/node-gizwits/index')
 const { validateControlPayload } = require('./validation')
 const { stmts } = require('./db')
+const { restoreAction, fallbackAction, withPowerOnSession } = require('./preheat-decisions')
 const { VAPID_PUBLIC_KEY, configured: pushConfigured } = require('./push')
 const { checkThresholds } = require('./notifications')
 
@@ -282,6 +283,7 @@ async function startServer() {
 			connected = true
 			io.emit('deviceStatus', { connected: true })
 			logger.info('Device login and data retrieval completed')
+			restorePreheat()
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'Unknown error')
 			logger.error('Failed to login or retrieve data', { error: errorMessage })
@@ -330,6 +332,13 @@ async function startServer() {
 	// is in-flight rather than queuing them. The user can retry manually.
 	let commandInFlight = false
 
+	// Each attribute is its own device write. When several are sent in one batch
+	// (e.g. arming pre-heat), the device drops or overwrites writes that arrive
+	// before the previous one has settled — verified against hardware: back-to-back
+	// writes lost PRE_TIME_*, a ~1s gap kept them. Pause between keys (not after
+	// the last), so single-key commands stay instant.
+	const INTER_COMMAND_DELAY_MS = 900
+
 	async function handleControl(settings) {
 		if (commandInFlight) {
 			logger.warn('Command dropped: device is still processing a previous command', { settings })
@@ -337,10 +346,15 @@ async function startServer() {
 		}
 
 		commandInFlight = true
+		// Turning power on always runs a full 60-minute session unless a length was
+		// explicitly provided (e.g. /device/start automation).
+		settings = withPowerOnSession(settings)
 		logger.info('Handling device control', { settings })
 
 		try {
-			for (const [key, value] of Object.entries(settings)) {
+			const entries = Object.entries(settings)
+			for (let i = 0; i < entries.length; i++) {
+				const [key, value] = entries[i]
 				// The physical sauna only supports a 0–60 minute timer with no hour
 				// component. SET_HOUR is accepted by validation but has no practical
 				// effect on the device and may behave unpredictably.
@@ -350,6 +364,9 @@ async function startServer() {
 				logger.debug(`Setting attribute: ${key} = ${value}`)
 				await device.setAttribute({ [key]: value })
 				logger.debug(`Successfully set ${key}`)
+				if (i < entries.length - 1) {
+					await new Promise(r => setTimeout(r, INTER_COMMAND_DELAY_MS))
+				}
 			}
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'Unknown error')
@@ -359,6 +376,136 @@ async function startServer() {
 		}
 
 		return { dropped: false }
+	}
+
+	// handleControl drops a command if one is already in flight. For unattended
+	// pre-heat actions, retry once after a short pause before giving up.
+	async function handleControlWithRetry(payload, attempts = 2) {
+		for (let i = 0; i < attempts; i++) {
+			const result = await handleControl(payload)
+			if (!result.dropped) return result
+			await new Promise(r => setTimeout(r, 1500))
+		}
+		logger.warn('handleControl still dropped after retries', { payload })
+		return { dropped: true }
+	}
+
+	// --- Pre-heat scheduling -------------------------------------------------
+	// The sauna's native pre-heat is a delayed-start timer that only fires if
+	// power_flag is set true at arming time (verified against hardware): the
+	// device counts the delay down and then engages the heater itself. We arm it
+	// that way as the primary mechanism and run a backend watchdog as a fallback —
+	// if the device has not powered on shortly past the target time, we force it.
+	// The device rounds its countdown up by up to ~1 min, so the watchdog waits
+	// past that before intervening.
+	const PREHEAT_GRACE_MS = 150 * 1000
+
+	// Pre-heat always runs a full 60-minute session once it fires.
+	const PREHEAT_SESSION_MINUTES = 60
+
+	let preheatTimer = null
+
+	function schedulePayload() {
+		const row = stmts.getPreheatSchedule.get()
+		return row ? { targetAt: row.target_at, setTemp: row.set_temp, setMinute: row.set_minute } : null
+	}
+
+	function broadcastSchedule() {
+		io.emit('preheatSchedule', schedulePayload())
+	}
+
+	function clearSchedule() {
+		if (preheatTimer) {
+			clearTimeout(preheatTimer)
+			preheatTimer = null
+		}
+		stmts.clearPreheatSchedule.run()
+		broadcastSchedule()
+	}
+
+	function scheduleWatchdog(targetAt) {
+		if (preheatTimer) clearTimeout(preheatTimer)
+		const delay = Math.max(0, targetAt + PREHEAT_GRACE_MS - Date.now())
+		preheatTimer = setTimeout(() => {
+			fireFallback('watchdog').catch(err => logger.error('Pre-heat fallback failed', { error: err.message }))
+		}, delay)
+	}
+
+	async function fireFallback(reason) {
+		const row = stmts.getPreheatSchedule.get()
+		if (!row) return
+		const action = fallbackAction(deviceSettings)
+		if (action === 'noop') {
+			logger.info('Pre-heat fallback: device already heating, nothing to do', { reason })
+		} else if (action === 'force-on') {
+			// Device still shows the timer armed but is overdue — force the session on.
+			logger.warn('Pre-heat fallback: device did not start, forcing power on', { reason })
+			await handleControlWithRetry({ SET_TEMP: row.set_temp, SET_MINUTE: row.set_minute, power_flag: true })
+		} else {
+			// Neither powered nor armed → user likely cancelled at the panel. Do not start.
+			logger.info('Pre-heat fallback: device not armed and not on, assuming cancelled', { reason })
+		}
+		clearSchedule()
+	}
+
+	async function armPreheat({ hours, minutes, temp }) {
+		const h = Number(hours), m = Number(minutes), t = Number(temp)
+		const errors = []
+		if (!Number.isInteger(h) || h < 0 || h > 23) errors.push('hours must be an integer 0-23')
+		if (!Number.isInteger(m) || m < 0 || m > 59) errors.push('minutes must be an integer 0-59')
+		if (h * 60 + m <= 0) errors.push('delay must be greater than zero')
+		if (!Number.isInteger(t) || t < 60 || t > 180) errors.push('temp must be an integer 60-180')
+		if (errors.length) return { ok: false, errors }
+
+		const s = PREHEAT_SESSION_MINUTES
+		// Arm the device the proven way: targets, delay, flag, then power.
+		const result = await handleControlWithRetry({
+			SET_TEMP: t,
+			SET_MINUTE: s,
+			PRE_TIME_HOUR: h,
+			PRE_TIME_MINUTE: m,
+			PRE_TIME_FLAG: true,
+			power_flag: true,
+		})
+		if (result.dropped) return { ok: false, errors: ['Device busy, try again'] }
+
+		const targetAt = Date.now() + (h * 60 + m) * 60 * 1000
+		stmts.setPreheatSchedule.run({ target_at: targetAt, set_temp: t, set_minute: s })
+		scheduleWatchdog(targetAt)
+		broadcastSchedule()
+		logger.info('Pre-heat armed', { hours: h, minutes: m, temp: t, sessionMinutes: s, targetAt })
+		return { ok: true, targetAt }
+	}
+
+	async function cancelPreheat() {
+		// Order matters: power off FIRST. Clearing PRE_TIME_FLAG while the device is
+		// counting down makes it commit to a running session and latch power on, so a
+		// later power_flag:false loses the race (verified against hardware).
+		const result = await handleControlWithRetry({ power_flag: false, PRE_TIME_FLAG: false })
+		clearSchedule()
+		logger.info('Pre-heat cancelled')
+		return { ok: !result.dropped }
+	}
+
+	// On startup / reconnect, recover a persisted schedule. Per product decision:
+	// start late if still within the would-be session window, otherwise discard.
+	function restorePreheat() {
+		const row = stmts.getPreheatSchedule.get()
+		if (!row) return
+		const action = restoreAction(row, Date.now())
+		if (action === 'pending') {
+			logger.info('Restoring pending pre-heat schedule', { targetAt: row.target_at })
+			scheduleWatchdog(row.target_at)
+			broadcastSchedule()
+		} else if (action === 'start-late') {
+			logger.warn('Pre-heat target passed during downtime, starting late', { targetAt: row.target_at })
+			handleControlWithRetry({ SET_TEMP: row.set_temp, SET_MINUTE: row.set_minute, power_flag: true })
+				.catch(err => logger.error('Late pre-heat start failed', { error: err.message }))
+			clearSchedule()
+		} else {
+			logger.info('Pre-heat window fully missed during downtime, discarding', { targetAt: row.target_at })
+			clearSchedule()
+		}
 	}
 
 	// Convenience endpoints for automation (curl, Home Assistant, webhooks)
@@ -411,6 +558,31 @@ async function startServer() {
 		res.json({ status: 'Device controlled', settings: payload })
 	})
 
+	// Arm the delayed-start pre-heat. hours+minutes = delay from now; temp = target
+	// temperature; time = session length in minutes (matches /device/start).
+	app.all('/device/preheat', async (req, res) => {
+		if (!requireDevice(res)) return
+		const r = await armPreheat({
+			hours: req.query.hours ?? req.body?.hours ?? 0,
+			minutes: req.query.minutes ?? req.body?.minutes,
+			temp: req.query.temp ?? req.body?.temp,
+		})
+		if (!r.ok) return res.status(400).json({ error: 'Could not arm pre-heat', details: r.errors })
+		logger.info('Pre-heat armed via HTTP', { targetAt: r.targetAt })
+		res.json({ status: 'Pre-heat armed', targetAt: r.targetAt })
+	})
+
+	app.all('/device/preheat/cancel', async (req, res) => {
+		if (!requireDevice(res)) return
+		await cancelPreheat()
+		res.json({ status: 'Pre-heat cancelled' })
+	})
+
+	app.get('/device/preheat/status', (req, res) => {
+		const payload = schedulePayload()
+		res.json(payload ? { active: true, ...payload } : { active: false })
+	})
+
 	// Socket.IO events for device actions
 	io.on('connection', async (socket) => {
 		const clientIp = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
@@ -419,6 +591,7 @@ async function startServer() {
 		// Send the initial device and connection status to the client
 		socket.emit('deviceStatus', { connected })
 		socket.emit('attributes', deviceSettings)
+		socket.emit('preheatSchedule', schedulePayload())
 
 		socket.on('connected', (data) => {
 			logger.debug('Client connected event received', { socketId: socket.id, data })
@@ -453,6 +626,25 @@ async function startServer() {
 			} else if (typeof ack === 'function') {
 				ack({ status: 'ok', settings: payload })
 			}
+		})
+
+		socket.on('armPreheat', async (opts, ack) => {
+			if (!connected) return socket.emit('error', { error: 'Device not connected' })
+			logger.info('Pre-heat arm requested via socket', { socketId: socket.id, opts })
+			const r = await armPreheat({
+				hours: opts?.hours,
+				minutes: opts?.minutes,
+				temp: opts?.temp,
+			})
+			if (!r.ok) socket.emit('error', { error: 'Could not arm pre-heat', details: r.errors })
+			if (typeof ack === 'function') ack(r.ok ? { status: 'ok', targetAt: r.targetAt } : { status: 'error', errors: r.errors })
+		})
+
+		socket.on('cancelPreheat', async (ack) => {
+			if (!connected) return socket.emit('error', { error: 'Device not connected' })
+			logger.info('Pre-heat cancel requested via socket', { socketId: socket.id })
+			await cancelPreheat()
+			if (typeof ack === 'function') ack({ status: 'ok' })
 		})
 
 		socket.on('disconnect', (reason) => {
