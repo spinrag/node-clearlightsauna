@@ -56,6 +56,19 @@
 	let serverConnected = $state(false);
 	let deviceConnected = $state(false);
 
+	// Pre-heat (delayed start). The delay is composed locally before arming, then
+	// sent to the backend which arms the device and runs a fallback watchdog.
+	interface PreheatSchedule {
+		targetAt: number;
+		setTemp: number;
+		setMinute: number;
+	}
+	let preheatSchedule = $state<PreheatSchedule | null>(null);
+	let preHour = $state(0);
+	let preMinute = $state(0);
+	let preheatError = $state('');
+	const preheatActive = $derived(!!preheatSchedule || status.PRE_TIME_FLAG);
+
 	function toggleAttribute(attribute: keyof SaunaStatus) {
 		socket.emit('control', { [attribute]: !status[attribute] });
 	}
@@ -85,30 +98,55 @@
 		socket.emit('control', { SET_MINUTE: newMinute });
 	}
 
+	// Adjust the pre-heat delay locally (0:00–23:59). Nothing is sent to the device
+	// until the user arms pre-heat — the backend applies the delay at that point.
 	function adjustPreTime(change: number) {
-		let newMinute = status.PRE_TIME_MINUTE + change;
-		let newHour = status.PRE_TIME_HOUR;
+		const MAX = 23 * 60 + 59;
+		const total = Math.max(0, Math.min(MAX, preHour * 60 + preMinute + change));
+		preHour = Math.floor(total / 60);
+		preMinute = total % 60;
+		preheatError = '';
+	}
 
-		if (newMinute >= 60) {
-			newMinute = 0;
-			newHour = (newHour + 1) % 24;
-		} else if (newMinute < 0) {
-			newMinute = change === -1 ? 59 : 60 + change;
-			newHour = (newHour - 1 + 24) % 24;
-		}
+	// Projected start time from the locally-composed delay (shown before arming).
+	function calculateStartTime() {
+		const now = new Date();
+		const startTime = new Date(now.getTime() + (preHour * 60 + preMinute) * 60 * 1000);
+		return startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+	}
 
-		socket.emit('control', {
-			PRE_TIME_HOUR: newHour,
-			PRE_TIME_MINUTE: newMinute
+	// Confirmed start time once armed (from the backend schedule).
+	function scheduledStartTime() {
+		if (!preheatSchedule) return '';
+		return new Date(preheatSchedule.targetAt).toLocaleTimeString([], {
+			hour: '2-digit',
+			minute: '2-digit'
 		});
 	}
 
-	function calculateStartTime() {
-		const now = new Date();
-		const startTime = new Date(
-			now.getTime() + status.PRE_TIME_HOUR * 60 * 60 * 1000 + status.PRE_TIME_MINUTE * 60 * 1000
+	function togglePreheat() {
+		if (preheatActive) {
+			socket.emit('cancelPreheat', () => {});
+			return;
+		}
+		if (preHour * 60 + preMinute <= 0) {
+			preheatError = 'Set a delay first using the +/- buttons.';
+			return;
+		}
+		preheatError = '';
+		socket.emit(
+			'armPreheat',
+			{
+				hours: preHour,
+				minutes: preMinute,
+				temp: status.SET_TEMP
+			},
+			(resp: { status: string; errors?: string[] }) => {
+				if (resp?.status === 'error') {
+					preheatError = (resp.errors || ['Could not arm pre-heat']).join('; ');
+				}
+			}
 		);
-		return startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 	}
 
 	function padTwo(n: number) {
@@ -136,11 +174,17 @@
 		Object.assign(status, incoming);
 	}
 
+	function onPreheatSchedule(s: PreheatSchedule | null) {
+		if (devMode) console.log('preheatSchedule', s);
+		preheatSchedule = s;
+	}
+
 	onMount(() => {
 		socket.on('connect', onConnected);
 		socket.on('disconnect', onDisconnected);
 		socket.on('deviceStatus', onDeviceStatus);
 		socket.on('attributes', onAttributes);
+		socket.on('preheatSchedule', onPreheatSchedule);
 
 		// Socket.IO may already be connected by the time onMount fires,
 		// meaning we missed the initial connect + deviceStatus events.
@@ -155,6 +199,7 @@
 		socket.off('disconnect', onDisconnected);
 		socket.off('deviceStatus', onDeviceStatus);
 		socket.off('attributes', onAttributes);
+		socket.off('preheatSchedule', onPreheatSchedule);
 	});
 </script>
 
@@ -241,17 +286,17 @@
 		</div>
 	</div>
 
-	<!-- Pre-Time Settings -->
+	<!-- Pre-Heat (delayed start): set the delay, then toggle to arm -->
 	<div class="flex flex-col items-center mb-8">
 		<div class="flex items-center space-x-4">
 			<RoundButton
 				icon={faClock}
 				label="Pre-Heat"
-				onToggle={() => toggleAttribute('PRE_TIME_FLAG')}
-				active={status.PRE_TIME_FLAG}
+				onToggle={togglePreheat}
+				active={preheatActive}
 			/>
 
-			{#if status.PRE_TIME_FLAG}
+			{#if !preheatActive}
 				<div class="flex items-center ml-4">
 					<div class="flex flex-col space-y-2 mr-4">
 						<StepButton
@@ -270,14 +315,29 @@
 					<div
 						class="flex items-center justify-center text-white rounded-full w-24 h-24 text-2xl font-bold shadow-lg bg-gray-700"
 					>
-						{padTwo(status.PRE_TIME_HOUR)}:{padTwo(status.PRE_TIME_MINUTE)}
+						{padTwo(preHour)}:{padTwo(preMinute)}
 					</div>
 				</div>
 			{/if}
 		</div>
 
-		{#if status.PRE_TIME_FLAG}
-			<div class="text-lg font-semibold mt-4">Start Time: {calculateStartTime()}</div>
+		{#if preheatActive}
+			<div class="mt-4 text-center">
+				<div class="text-lg font-semibold">Scheduled start: {scheduledStartTime()}</div>
+				{#if status.PRE_TIME_FLAG && (status.PRE_TIME_HOUR || status.PRE_TIME_MINUTE)}
+					<div class="text-sm text-gray-300">
+						Device timer: {padTwo(status.PRE_TIME_HOUR)}:{padTwo(status.PRE_TIME_MINUTE)} remaining
+					</div>
+				{/if}
+				<div class="text-sm text-gray-300">Tap Pre-Heat to cancel</div>
+			</div>
+		{:else}
+			{#if preHour * 60 + preMinute > 0}
+				<div class="text-lg font-semibold mt-4">Will start at: {calculateStartTime()}</div>
+			{/if}
+			{#if preheatError}
+				<div class="mt-2 text-sm text-red-400">{preheatError}</div>
+			{/if}
 		{/if}
 	</div>
 

@@ -28,6 +28,18 @@ db.exec(`
   )
 `)
 
+// Single-row table holding the one pending pre-heat schedule (id is pinned to 1).
+// target_at is the epoch-ms instant the sauna should be heating by.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS preheat_schedule (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    target_at INTEGER NOT NULL,
+    set_temp INTEGER NOT NULL,
+    set_minute INTEGER NOT NULL,
+    created_at TEXT DEFAULT (datetime('now'))
+  )
+`)
+
 // Prepared statements
 const stmts = {
 	upsertSubscription: db.prepare(`
@@ -71,6 +83,24 @@ const stmts = {
 
 	getSubscriptionByEndpoint: db.prepare(`
     SELECT * FROM push_subscriptions WHERE endpoint = ?
+  `),
+
+	setPreheatSchedule: db.prepare(`
+    INSERT INTO preheat_schedule (id, target_at, set_temp, set_minute)
+    VALUES (1, @target_at, @set_temp, @set_minute)
+    ON CONFLICT(id) DO UPDATE SET
+      target_at = @target_at,
+      set_temp = @set_temp,
+      set_minute = @set_minute,
+      created_at = datetime('now')
+  `),
+
+	getPreheatSchedule: db.prepare(`
+    SELECT * FROM preheat_schedule WHERE id = 1
+  `),
+
+	clearPreheatSchedule: db.prepare(`
+    DELETE FROM preheat_schedule WHERE id = 1
   `),
 }
 
