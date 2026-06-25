@@ -14,6 +14,9 @@ logs/
 # SQLite data
 backend/data/
 
+# Test coverage output
+coverage/
+
 # OS
 .DS_Store
 Thumbs.db
