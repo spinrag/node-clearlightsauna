@@ -41,6 +41,14 @@ pnpm build
 
 ## Env changes
 
+> **⚠️ The backend reads its env file from `backend/.env`, not a root `.env`.**
+> dotenv loads from the backend package's own directory with no path override, so
+> a `.env` at the repo root is silently ignored and the backend starts with no
+> config (missing `API_TOKEN` → all requests rejected; missing `CLEARLIGHT_IP` →
+> no device). Always put backend variables in `backend/.env`.
+> (The frontend likewise reads its own `frontend/.env` — they are separate files;
+> do not consolidate them.)
+
 After pulling, **diff your `backend/.env` against `backend/.env.example`** and
 add any new keys — new features add new variables, and a missing one usually
 just disables that feature silently (or, for required ones, fails at startup):
