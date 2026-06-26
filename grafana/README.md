@@ -1,0 +1,71 @@
+# Grafana — Sauna stats
+
+Visualizes the stats the backend writes to InfluxDB (see `backend/influx.js`).
+Measurement `sauna`, tag `device`, fields `current_temp`, `set_temp`,
+`power_flag`, `pre_time_flag`.
+
+## Prerequisites
+
+1. Backend configured with `INFLUX_*` (see `backend/.env.example`) and writing
+   points — confirm with `GET /health` returning `"logging":"influx"`.
+2. A Grafana **InfluxDB datasource in Flux query language** pointed at the same
+   org/bucket:
+   - URL: your InfluxDB 2.x URL (e.g. `http://influx:8086`)
+   - Query language: **Flux**
+   - Organization, Token, Default bucket: `sauna`
+
+## Import the dashboard
+
+1. Grafana → Dashboards → **New → Import**.
+2. Upload `sauna-dashboard.json` (or paste its contents).
+3. When prompted for **InfluxDB**, pick your Flux datasource. Click Import.
+
+The dashboard has two hidden constants you can edit under Dashboard settings →
+Variables if your naming differs:
+
+- `bucket` (default `sauna`) — must match `INFLUX_BUCKET`
+- `device` (default `clearlight`) — must match `INFLUX_DEVICE`
+
+## Panels
+
+- **Current Temp / Set Temp / Heating / Pre-Heat Armed** — at-a-glance state.
+- **Heat-up Curve** — `current_temp` (solid) vs `set_temp` (dashed). Read
+  time-to-temp directly: from where the curve starts rising to where it meets
+  the target line.
+- **Power & Pre-Heat State** — timeline of `power_flag` / `pre_time_flag`; aligns
+  under the curve so you can see exactly when a session started.
+- **Heat-up Rate (°F/min)** — first derivative of `current_temp`; how fast it's
+  climbing.
+
+## Optional: time-to-temp as a single number
+
+The curve makes time-to-temp visible. For a numeric readout over the selected
+range, add a **Table** (or Stat) panel with this Flux query. Assumptions: the
+range contains exactly one heat-up — at least one power-on and one moment where
+`current_temp >= set_temp`. If those aren't present the panel will error; widen
+or narrow the time range to a single session.
+
+```flux
+import "array"
+
+data = from(bucket: "sauna")
+  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> filter(fn: (r) => r._measurement == "sauna" and r.device == "clearlight")
+
+powerOn = data
+  |> filter(fn: (r) => r._field == "power_flag" and r._value == true)
+  |> first()
+  |> findColumn(fn: (key) => true, column: "_time")
+
+reached = data
+  |> filter(fn: (r) => r._field == "current_temp" or r._field == "set_temp")
+  |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+  |> filter(fn: (r) => r.current_temp >= r.set_temp)
+  |> first()
+  |> findColumn(fn: (key) => true, column: "_time")
+
+array.from(rows: [{
+  _time: now(),
+  minutes_to_temp: float(v: int(v: reached[0]) - int(v: powerOn[0])) / 60000000000.0
+}])
+```
