@@ -55,29 +55,33 @@ cd lib/node-gizwits && npm install && cd ../..
 
 ### 3. Environment Configuration
 
-Copy the example and fill in your values:
+The backend and frontend each read their **own** `.env` file from their own
+directory — `backend/.env` and `frontend/.env`. They are separate files; a root
+`.env` is **not** used (the backend's dotenv loads from `backend/`, Vite loads
+from `frontend/`). Copy each example and fill it in:
 
 ```bash
-cp .env.example backend/.env
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 ```
 
-Edit `backend/.env`:
+Edit `backend/.env` — server, device, auth, CORS, plus optional Web Push and
+InfluxDB (see `backend/.env.example` for the full annotated list):
 
 ```bash
-# Backend Configuration
 PORT=3000
-CLEARLIGHT_IP=192.168.1.100  # Replace with your device IP address
+CLEARLIGHT_IP=192.168.1.100   # Replace with your device IP address
 API_TOKEN=change-me-to-a-random-secret
-
-# CORS Configuration
+API_KEY=change-me-to-a-url-key
 ALLOWED_ORIGINS=http://localhost:8099,http://localhost:3000,https://*.example.com
-
-# Logging (error, warn, info, debug)
 LOG_LEVEL=info
+```
 
-# Frontend Configuration (Vite)
-VITE_SOCKET_HOST=http://localhost:3000
-VITE_API_TOKEN=change-me-to-a-random-secret
+Edit `frontend/.env` — Vite variables, embedded into the client bundle at build:
+
+```bash
+VITE_SOCKET_HOST=http://localhost:3000        # Backend URL the browser connects to
+VITE_API_TOKEN=change-me-to-a-random-secret   # Must match the backend API_TOKEN
 VITE_DEV_MODE=true
 ```
 
