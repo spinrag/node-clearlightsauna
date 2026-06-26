@@ -34,6 +34,9 @@ importers:
 
   backend:
     dependencies:
+      '@influxdata/influxdb-client':
+        specifier: ^1.35.0
+        version: 1.35.0
       better-sqlite3:
         specifier: ^12.8.0
         version: 12.8.0
@@ -419,6 +422,9 @@ packages:
   '@hutson/parse-repository-url@3.0.2':
     resolution: {integrity: sha512-H9XAx3hc0BQHY6l+IFSWHDySypcXsvsuLhgYLUGywmJ5pswRVQJUHpOsobnLYp2ZUaUlKiKDrgWWhosOwAEM8Q==}
     engines: {node: '>=6.9.0'}
+
+  '@influxdata/influxdb-client@1.35.0':
+    resolution: {integrity: sha512-woWMi8PDpPQpvTsRaUw4Ig+nOGS/CWwAwS66Fa1Vr/EkW+NEwxI8YfPBsdBMn33jK2Y86/qMiiuX/ROHIkJLTw==}
 
   '@isaacs/cliui@8.0.2':
     resolution: {integrity: sha512-O8jcjabXaleOG9DQ0+ARXWZBTfnP4WNAqzuiJK7ll44AmxGKv/J2M4TPjxjY3znBCfvBXFzucm1twdyFybFqEA==}
@@ -3223,6 +3229,8 @@ snapshots:
   '@humanwhocodes/retry@0.4.3': {}
 
   '@hutson/parse-repository-url@3.0.2': {}
+
+  '@influxdata/influxdb-client@1.35.0': {}
 
   '@isaacs/cliui@8.0.2':
     dependencies:
