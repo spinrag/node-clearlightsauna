@@ -11,6 +11,7 @@ const { stmts } = require('./db')
 const { restoreAction, fallbackAction, withPowerOnSession } = require('./preheat-decisions')
 const { VAPID_PUBLIC_KEY, configured: pushConfigured } = require('./push')
 const { checkThresholds } = require('./notifications')
+const { logSaunaPoint, closeInflux, configured: influxConfigured } = require('./influx')
 
 // Configure Winston logger
 const logger = winston.createLogger({
@@ -196,6 +197,7 @@ async function startServer() {
 		res.json({
 			status: connected ? 'ok' : 'degraded',
 			device: connected ? 'connected' : 'disconnected',
+			logging: influxConfigured ? 'influx' : 'off',
 			uptime: process.uptime()
 		})
 	})
@@ -265,6 +267,7 @@ async function startServer() {
 
 	let deviceSettings = {}
 	let prevPowerFlag = false
+	let prevPreFlag = false
 
 	// Set max listeners to prevent memory leak warnings
 	device.setMaxListeners(20);
@@ -306,9 +309,18 @@ async function startServer() {
 
 		// Detect power-off transition for notification re-arm
 		const powerOff = prevPowerFlag && !data.power_flag
+		// Force a stats sample on any power / pre-heat transition so session
+		// starts and stops are captured for accurate heat-up timing.
+		const stateChanged = prevPowerFlag !== !!data.power_flag || prevPreFlag !== !!data.PRE_TIME_FLAG
 		prevPowerFlag = !!data.power_flag
+		prevPreFlag = !!data.PRE_TIME_FLAG
 
 		deviceSettings = data
+
+		// Log a sample to InfluxDB (throttled inside, forced on state change)
+		if (influxConfigured) {
+			logSaunaPoint(data, { force: stateChanged })
+		}
 
 		// Check push notification thresholds
 		if (pushConfigured && data.CURRENT_TEMP != null) {
@@ -657,7 +669,19 @@ async function startServer() {
 	const PORT = process.env.PORT || 3000
 	server.listen(PORT, () => {
 		logger.info(`Server listening on port ${PORT}`)
+		logger.info(`Stats logging: ${influxConfigured ? 'InfluxDB enabled' : 'disabled (INFLUX_* not set)'}`)
 	})
+
+	// Flush buffered stats on shutdown so the last samples are not lost.
+	let shuttingDown = false
+	for (const signal of ['SIGINT', 'SIGTERM']) {
+		process.on(signal, () => {
+			if (shuttingDown) return
+			shuttingDown = true
+			logger.info(`Received ${signal}, flushing and exiting`)
+			closeInflux().finally(() => process.exit(0))
+		})
+	}
 
 	// Connect to device in the background — server is already accepting requests
 	logger.info('Attempting to connect to device...')
