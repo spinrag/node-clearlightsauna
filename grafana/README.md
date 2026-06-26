@@ -25,6 +25,8 @@ Variables if your naming differs:
 
 - `bucket` (default `sauna`) — must match `INFLUX_BUCKET`
 - `device` (default `clearlight`) — must match `INFLUX_DEVICE`
+- `target_temp` (default `120`) — **editable textbox at the top of the dashboard**;
+  type any target °F to re-estimate the heat-up time.
 
 ## Panels
 
@@ -36,6 +38,30 @@ Variables if your naming differs:
   under the curve so you can see exactly when a session started.
 - **Heat-up Rate (°F/min)** — first derivative of `current_temp`; how fast it's
   climbing.
+- **Est. Time to `${target_temp}`°F** — predicted heat-up time, with the assumed
+  start (24h low) and heating rate shown alongside. See below.
+
+## Time-to-temp estimate
+
+The "Est. Time to …°F" panel answers "from a cold start, how long to reach the
+target?" using:
+
+```
+estimate (min) = (target − 24h-low current_temp) ÷ median heating rate
+```
+
+- **Start** = the lowest `current_temp` in the last 24h (the cold-start baseline).
+- **Rate** = the median positive per-minute rise of `current_temp` over the last
+  30 days, counting only samples climbing faster than 0.3 °F/min (i.e. actual
+  heating, excluding idle/cooling). With the current data this is ~2 °F/min.
+- **Target** = the `target_temp` textbox variable — change it to re-estimate.
+
+It's a **linear** estimate: it assumes a steady climb. Real heating slows as it
+nears the element's ceiling, so very high targets read optimistically — and if
+the target is hotter than the sauna has ever reached in the data, the rate is
+extrapolated and less trustworthy. Treat it as a ballpark; the **Heat-up Curve**
+remains the ground truth. The rate window (30d) and the 0.3 °F/min threshold are
+in the panel's Flux if you want to tune them.
 
 ## Optional: time-to-temp as a single number
 
