@@ -67,6 +67,7 @@
 	let preHour = $state(0);
 	let preMinute = $state(0);
 	let preheatError = $state('');
+	let preheatEditing = $state(false);
 	const preheatActive = $derived(!!preheatSchedule || status.PRE_TIME_FLAG);
 
 	function toggleAttribute(attribute: keyof SaunaStatus) {
@@ -98,15 +99,17 @@
 		socket.emit('control', { SET_MINUTE: newMinute });
 	}
 
-	// Adjust the pre-heat delay locally (0:00–23:59). Nothing is sent to the device
-	// until the user arms pre-heat — the backend applies the delay at that point.
-	function adjustPreTime(change: number) {
+	// Adjust the pre-heat delay locally (0:00–23:59) via separate hour/minute
+	// controls. Nothing is sent to the device until the user hits Confirm.
+	function adjustDelay(deltaMinutes: number) {
 		const MAX = 23 * 60 + 59;
-		const total = Math.max(0, Math.min(MAX, preHour * 60 + preMinute + change));
+		const total = Math.max(0, Math.min(MAX, preHour * 60 + preMinute + deltaMinutes));
 		preHour = Math.floor(total / 60);
 		preMinute = total % 60;
 		preheatError = '';
 	}
+	const adjustHour = (h: number) => adjustDelay(h * 60);
+	const adjustMinute = (m: number) => adjustDelay(m);
 
 	// Projected start time from the locally-composed delay (shown before arming).
 	function calculateStartTime() {
@@ -124,29 +127,39 @@
 		});
 	}
 
+	// Tapping the Pre-Heat button: if armed, cancel; otherwise just open/close the
+	// editor. Arming only happens when the user hits Confirm.
 	function togglePreheat() {
 		if (preheatActive) {
-			socket.emit('cancelPreheat', () => {});
+			cancelArmedPreheat();
 			return;
 		}
+		preheatEditing = !preheatEditing;
+		preheatError = '';
+	}
+
+	function confirmPreheat() {
 		if (preHour * 60 + preMinute <= 0) {
-			preheatError = 'Set a delay first using the +/- buttons.';
+			preheatError = 'Set a delay greater than zero.';
 			return;
 		}
 		preheatError = '';
 		socket.emit(
 			'armPreheat',
-			{
-				hours: preHour,
-				minutes: preMinute,
-				temp: status.SET_TEMP
-			},
+			{ hours: preHour, minutes: preMinute, temp: status.SET_TEMP },
 			(resp: { status: string; errors?: string[] }) => {
 				if (resp?.status === 'error') {
 					preheatError = (resp.errors || ['Could not arm pre-heat']).join('; ');
+				} else {
+					preheatEditing = false;
 				}
 			}
 		);
+	}
+
+	function cancelArmedPreheat() {
+		socket.emit('cancelPreheat', () => {});
+		preheatEditing = false;
 	}
 
 	function padTwo(n: number) {
@@ -286,40 +299,14 @@
 		</div>
 	</div>
 
-	<!-- Pre-Heat (delayed start): set the delay, then toggle to arm -->
+	<!-- Pre-Heat (delayed start): tap to open, set hours/minutes, then Confirm -->
 	<div class="flex flex-col items-center mb-8">
-		<div class="flex items-center space-x-4">
-			<RoundButton
-				icon={faClock}
-				label="Pre-Heat"
-				onToggle={togglePreheat}
-				active={preheatActive}
-			/>
-
-			{#if !preheatActive}
-				<div class="flex items-center ml-4">
-					<div class="flex flex-col space-y-2 mr-4">
-						<StepButton
-							direction="up"
-							onPress={() => adjustPreTime(1)}
-							onHold={() => adjustPreTime(15)}
-							holdInterval={750}
-						/>
-						<StepButton
-							direction="down"
-							onPress={() => adjustPreTime(-1)}
-							onHold={() => adjustPreTime(-15)}
-							holdInterval={750}
-						/>
-					</div>
-					<div
-						class="flex items-center justify-center text-white rounded-full w-24 h-24 text-2xl font-bold shadow-lg bg-gray-700"
-					>
-						{padTwo(preHour)}:{padTwo(preMinute)}
-					</div>
-				</div>
-			{/if}
-		</div>
+		<RoundButton
+			icon={faClock}
+			label="Pre-Heat"
+			onToggle={togglePreheat}
+			active={preheatActive || preheatEditing}
+		/>
 
 		{#if preheatActive}
 			<div class="mt-4 text-center">
@@ -329,15 +316,80 @@
 						Device timer: {padTwo(status.PRE_TIME_HOUR)}:{padTwo(status.PRE_TIME_MINUTE)} remaining
 					</div>
 				{/if}
-				<div class="text-sm text-gray-300">Tap Pre-Heat to cancel</div>
+				<button
+					class="mt-3 rounded-md bg-red-700 px-4 py-2 font-semibold text-white hover:bg-red-600"
+					onclick={cancelArmedPreheat}
+				>
+					Cancel Pre-Heat
+				</button>
 			</div>
-		{:else}
-			{#if preHour * 60 + preMinute > 0}
-				<div class="text-lg font-semibold mt-4">Will start at: {calculateStartTime()}</div>
-			{/if}
-			{#if preheatError}
-				<div class="mt-2 text-sm text-red-400">{preheatError}</div>
-			{/if}
+		{:else if preheatEditing}
+			<div class="mt-4 flex flex-col items-center">
+				<div class="mb-2 text-sm text-gray-300">Delay before the sauna turns on</div>
+				<div class="flex items-end space-x-6">
+					<div class="flex flex-col items-center space-y-2">
+						<StepButton
+							direction="up"
+							onPress={() => adjustHour(1)}
+							onHold={() => adjustHour(1)}
+							holdInterval={300}
+						/>
+						<div class="w-16 text-center text-3xl font-bold">{padTwo(preHour)}</div>
+						<StepButton
+							direction="down"
+							onPress={() => adjustHour(-1)}
+							onHold={() => adjustHour(-1)}
+							holdInterval={300}
+						/>
+						<div class="text-xs text-gray-400">hours</div>
+					</div>
+					<div class="pb-10 text-3xl font-bold">:</div>
+					<div class="flex flex-col items-center space-y-2">
+						<StepButton
+							direction="up"
+							onPress={() => adjustMinute(1)}
+							onHold={() => adjustMinute(15)}
+							holdInterval={450}
+						/>
+						<div class="w-16 text-center text-3xl font-bold">{padTwo(preMinute)}</div>
+						<StepButton
+							direction="down"
+							onPress={() => adjustMinute(-1)}
+							onHold={() => adjustMinute(-15)}
+							holdInterval={450}
+						/>
+						<div class="text-xs text-gray-400">min · hold ±15</div>
+					</div>
+				</div>
+
+				<div class="mt-4 text-lg font-semibold">
+					{#if preHour * 60 + preMinute > 0}
+						Starts at {calculateStartTime()}
+					{:else}
+						Set a delay
+					{/if}
+				</div>
+
+				<div class="mt-4 flex space-x-3">
+					<button
+						class="rounded-md bg-blue-600 px-5 py-2 font-semibold text-white hover:bg-blue-500 disabled:opacity-40"
+						onclick={confirmPreheat}
+						disabled={preHour * 60 + preMinute <= 0}
+					>
+						Confirm
+					</button>
+					<button
+						class="rounded-md bg-gray-600 px-5 py-2 text-white hover:bg-gray-500"
+						onclick={togglePreheat}
+					>
+						Cancel
+					</button>
+				</div>
+
+				{#if preheatError}
+					<div class="mt-2 text-sm text-red-400">{preheatError}</div>
+				{/if}
+			</div>
 		{/if}
 	</div>
 
