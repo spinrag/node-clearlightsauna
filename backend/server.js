@@ -8,7 +8,7 @@ require('dotenv').config()
 const { ClearlightDevice } = require('../lib/node-gizwits/index')
 const { validateControlPayload } = require('./validation')
 const { stmts } = require('./db')
-const { restoreAction, fallbackAction, withPowerOnSession } = require('./preheat-decisions')
+const { restoreAction, fallbackAction, withPowerOnSession, buildArmPayload } = require('./preheat-decisions')
 const { VAPID_PUBLIC_KEY, configured: pushConfigured } = require('./push')
 const { checkThresholds } = require('./notifications')
 const { logSaunaPoint, closeInflux, configured: influxConfigured } = require('./influx')
@@ -359,8 +359,9 @@ async function startServer() {
 
 		commandInFlight = true
 		// Turning power on always runs a full 60-minute session unless a length was
-		// explicitly provided (e.g. /device/start automation).
-		settings = withPowerOnSession(settings)
+		// explicitly provided (e.g. /device/start automation) or the device is
+		// already at 60 (no redundant write).
+		settings = withPowerOnSession(settings, 60, deviceSettings.SET_MINUTE)
 		logger.info('Handling device control', { settings })
 
 		try {
@@ -470,22 +471,17 @@ async function startServer() {
 		if (errors.length) return { ok: false, errors }
 
 		const s = PREHEAT_SESSION_MINUTES
-		// Arm the device the proven way: targets, delay, flag, then power.
-		const result = await handleControlWithRetry({
-			SET_TEMP: t,
-			SET_MINUTE: s,
-			PRE_TIME_HOUR: h,
-			PRE_TIME_MINUTE: m,
-			PRE_TIME_FLAG: true,
-			power_flag: true,
-		})
+		// Arm the proven way (targets, delay, flag, then power) but only write
+		// settings the device isn't already at — each write is paced ~900ms.
+		const payload = buildArmPayload({ hours: h, minutes: m, temp: t }, deviceSettings, s)
+		const result = await handleControlWithRetry(payload)
 		if (result.dropped) return { ok: false, errors: ['Device busy, try again'] }
 
 		const targetAt = Date.now() + (h * 60 + m) * 60 * 1000
 		stmts.setPreheatSchedule.run({ target_at: targetAt, set_temp: t, set_minute: s })
 		scheduleWatchdog(targetAt)
 		broadcastSchedule()
-		logger.info('Pre-heat armed', { hours: h, minutes: m, temp: t, sessionMinutes: s, targetAt })
+		logger.info('Pre-heat armed', { hours: h, minutes: m, temp: t, sessionMinutes: s, targetAt, writes: Object.keys(payload).length })
 		return { ok: true, targetAt }
 	}
 

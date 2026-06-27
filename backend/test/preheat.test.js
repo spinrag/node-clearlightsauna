@@ -4,7 +4,7 @@ const http = require('http')
 const express = require('express')
 const EventEmitter = require('events')
 
-const { restoreAction, fallbackAction, withPowerOnSession } = require('../preheat-decisions')
+const { restoreAction, fallbackAction, withPowerOnSession, buildArmPayload } = require('../preheat-decisions')
 
 const BEARER_TOKEN = 'test-bearer-token'
 const API_KEY = 'test-api-key'
@@ -75,14 +75,8 @@ function createApp() {
 		if (errors.length) return { ok: false, errors }
 
 		const s = PREHEAT_SESSION_MINUTES
-		const result = await handleControl({
-			SET_TEMP: t,
-			SET_MINUTE: s,
-			PRE_TIME_HOUR: h,
-			PRE_TIME_MINUTE: m,
-			PRE_TIME_FLAG: true,
-			power_flag: true,
-		})
+		// Empty device state -> full payload, exercising the HTTP contract.
+		const result = await handleControl(buildArmPayload({ hours: h, minutes: m, temp: t }, {}, s))
 		if (result.dropped) return { ok: false, errors: ['Device busy, try again'] }
 
 		const targetAt = 1_000_000 + (h * 60 + m) * 60 * 1000 // fixed base; no Date.now in tests
@@ -179,19 +173,53 @@ describe('preheat decision helpers', () => {
 
 	describe('withPowerOnSession', () => {
 		it('injects SET_MINUTE:60 (ordered first) when powering on without a length', () => {
-			const out = withPowerOnSession({ power_flag: true })
+			const out = withPowerOnSession({ power_flag: true }, 60, 30)
 			expect(out).to.deep.equal({ SET_MINUTE: 60, power_flag: true })
 			expect(Object.keys(out)[0]).to.equal('SET_MINUTE')
 		})
+		it('skips the write when the device is already at the target length', () => {
+			expect(withPowerOnSession({ power_flag: true }, 60, 60)).to.deep.equal({ power_flag: true })
+		})
 		it('preserves an explicitly provided session length', () => {
-			expect(withPowerOnSession({ power_flag: true, SET_MINUTE: 30 }))
+			expect(withPowerOnSession({ power_flag: true, SET_MINUTE: 30 }, 60, 60))
 				.to.deep.equal({ power_flag: true, SET_MINUTE: 30 })
 		})
 		it('leaves power-off commands untouched', () => {
-			expect(withPowerOnSession({ power_flag: false })).to.deep.equal({ power_flag: false })
+			expect(withPowerOnSession({ power_flag: false }, 60, 30)).to.deep.equal({ power_flag: false })
 		})
 		it('leaves non-power commands untouched', () => {
-			expect(withPowerOnSession({ SET_TEMP: 150 })).to.deep.equal({ SET_TEMP: 150 })
+			expect(withPowerOnSession({ SET_TEMP: 150 }, 60, 30)).to.deep.equal({ SET_TEMP: 150 })
+		})
+	})
+
+	describe('buildArmPayload', () => {
+		const target = { hours: 1, minutes: 30, temp: 140 }
+
+		it('writes everything when the device state is unknown', () => {
+			const p = buildArmPayload(target, {}, 60)
+			expect(p).to.deep.equal({
+				SET_TEMP: 140, SET_MINUTE: 60, PRE_TIME_HOUR: 1, PRE_TIME_MINUTE: 30,
+				PRE_TIME_FLAG: true, power_flag: true
+			})
+		})
+		it('skips settings the device is already at (only flags + diffs written)', () => {
+			const device = { SET_TEMP: 140, SET_MINUTE: 60, PRE_TIME_HOUR: 0, PRE_TIME_MINUTE: 0 }
+			const p = buildArmPayload(target, device, 60)
+			// temp + session already correct -> skipped; pre-time differs -> written
+			expect(p).to.deep.equal({
+				PRE_TIME_HOUR: 1, PRE_TIME_MINUTE: 30, PRE_TIME_FLAG: true, power_flag: true
+			})
+		})
+		it('always writes the flags last, power_flag final', () => {
+			const device = { SET_TEMP: 140, SET_MINUTE: 60, PRE_TIME_HOUR: 1, PRE_TIME_MINUTE: 30 }
+			const keys = Object.keys(buildArmPayload(target, device, 60))
+			// everything already set -> only the two flags remain
+			expect(keys).to.deep.equal(['PRE_TIME_FLAG', 'power_flag'])
+			expect(keys[keys.length - 1]).to.equal('power_flag')
+		})
+		it('writes SET_MINUTE when the device session length differs', () => {
+			const device = { SET_TEMP: 140, SET_MINUTE: 30, PRE_TIME_HOUR: 1, PRE_TIME_MINUTE: 30 }
+			expect(buildArmPayload(target, device, 60)).to.have.property('SET_MINUTE', 60)
 		})
 	})
 })
