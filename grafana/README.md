@@ -51,9 +51,11 @@ estimate (min) = (target − 24h-low current_temp) ÷ median heating rate
 ```
 
 - **Start** = the lowest `current_temp` in the last 24h (the cold-start baseline).
-- **Rate** = the median positive per-minute rise of `current_temp` over the last
-  30 days, counting only samples climbing faster than 0.3 °F/min (i.e. actual
-  heating, excluding idle/cooling). With the current data this is ~2 °F/min.
+- **Rate** = the median per-minute rise of `current_temp` over the last 30 days,
+  measured **only while `power_flag` is true** (actual heating sessions), keeping
+  rises between 0.2 and 15 °F/min to drop noise and cross-session jumps. Counting
+  only powered periods is essential — including idle time drags the rate toward
+  zero and balloons the estimate. With the current data this is ~3.3 °F/min.
 - **Target** = the `target_temp` textbox variable — change it to re-estimate.
 
 It's a **linear** estimate: it assumes a steady climb. Real heating slows as it

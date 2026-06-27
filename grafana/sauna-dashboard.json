@@ -175,7 +175,7 @@
         {
           "refId": "A",
           "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-          "query": "import \"array\"\nlow = float(v: (from(bucket: \"${bucket}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and r._field == \"current_temp\")\n  |> min()\n  |> findColumn(fn: (key) => true, column: \"_value\"))[0])\nrate = (from(bucket: \"${bucket}\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and r._field == \"current_temp\")\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)\n  |> derivative(unit: 1m, nonNegative: false)\n  |> filter(fn: (r) => r._value > 0.3)\n  |> median()\n  |> findColumn(fn: (key) => true, column: \"_value\"))[0]\ntarget = float(v: ${target_temp})\narray.from(rows: [{ _time: now(), _value: if target <= low then 0.0 else (target - low) / rate }])"
+          "query": "import \"array\"\nlow = float(v: (from(bucket: \"${bucket}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and r._field == \"current_temp\")\n  |> min()\n  |> findColumn(fn: (key) => true, column: \"_value\"))[0])\nrate = (from(bucket: \"${bucket}\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and (r._field == \"current_temp\" or r._field == \"power_flag\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => r.power_flag == true)\n  |> map(fn: (r) => ({ _time: r._time, _value: r.current_temp }))\n  |> derivative(unit: 1m, nonNegative: false)\n  |> filter(fn: (r) => r._value > 0.2 and r._value < 15.0)\n  |> median()\n  |> findColumn(fn: (key) => true, column: \"_value\"))[0]\ntarget = float(v: ${target_temp})\narray.from(rows: [{ _time: now(), _value: if target <= low then 0.0 else (target - low) / rate }])"
         }
       ]
     },
@@ -207,7 +207,7 @@
         {
           "refId": "A",
           "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and r._field == \"current_temp\")\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)\n  |> derivative(unit: 1m, nonNegative: false)\n  |> filter(fn: (r) => r._value > 0.3)\n  |> median()\n  |> keep(columns: [\"_value\"])"
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and (r._field == \"current_temp\" or r._field == \"power_flag\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => r.power_flag == true)\n  |> map(fn: (r) => ({ _time: r._time, _value: r.current_temp }))\n  |> derivative(unit: 1m, nonNegative: false)\n  |> filter(fn: (r) => r._value > 0.2 and r._value < 15.0)\n  |> median()\n  |> keep(columns: [\"_value\"])"
         }
       ]
     }
