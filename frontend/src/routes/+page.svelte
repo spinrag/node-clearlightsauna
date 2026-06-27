@@ -68,6 +68,7 @@
 	let preMinute = $state(0);
 	let preheatError = $state('');
 	let preheatEditing = $state(false);
+	let preheatPending = $state(false);
 	const preheatActive = $derived(!!preheatSchedule || status.PRE_TIME_FLAG);
 
 	function toggleAttribute(attribute: keyof SaunaStatus) {
@@ -130,6 +131,7 @@
 	// Tapping the Pre-Heat button: if armed, cancel; otherwise just open/close the
 	// editor. Arming only happens when the user hits Confirm.
 	function togglePreheat() {
+		if (preheatPending) return;
 		if (preheatActive) {
 			cancelArmedPreheat();
 			return;
@@ -138,26 +140,32 @@
 		preheatError = '';
 	}
 
+	// Arming sends six settings to the device ~900ms apart (the hardware drops
+	// back-to-back writes), so it takes a few seconds. Update the UI immediately
+	// ("Arming…") and reconcile when the backend acks / broadcasts the schedule.
 	function confirmPreheat() {
 		if (preHour * 60 + preMinute <= 0) {
 			preheatError = 'Set a delay greater than zero.';
 			return;
 		}
 		preheatError = '';
+		preheatEditing = false;
+		preheatPending = true;
 		socket.emit(
 			'armPreheat',
 			{ hours: preHour, minutes: preMinute, temp: status.SET_TEMP },
 			(resp: { status: string; errors?: string[] }) => {
+				preheatPending = false;
 				if (resp?.status === 'error') {
 					preheatError = (resp.errors || ['Could not arm pre-heat']).join('; ');
-				} else {
-					preheatEditing = false;
+					preheatEditing = true;
 				}
 			}
 		);
 	}
 
 	function cancelArmedPreheat() {
+		preheatPending = false;
 		socket.emit('cancelPreheat', () => {});
 		preheatEditing = false;
 	}
@@ -305,10 +313,17 @@
 			icon={faClock}
 			label="Pre-Heat"
 			onToggle={togglePreheat}
-			active={preheatActive || preheatEditing}
+			active={preheatActive || preheatEditing || preheatPending}
 		/>
 
-		{#if preheatActive}
+		{#if preheatPending && !preheatActive}
+			<div class="mt-4 flex items-center space-x-2 text-gray-300">
+				<span
+					class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-500 border-t-white"
+				></span>
+				<span>Arming… sending settings to the sauna</span>
+			</div>
+		{:else if preheatActive}
 			<div class="mt-4 text-center">
 				<div class="text-lg font-semibold">Scheduled start: {scheduledStartTime()}</div>
 				{#if status.PRE_TIME_FLAG && (status.PRE_TIME_HOUR || status.PRE_TIME_MINUTE)}
