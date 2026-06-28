@@ -20,8 +20,10 @@ function createApp() {
 
 	const device = new EventEmitter()
 	device.setAttributeCalls = []
+	device.failKeys = new Set() // keys whose ack "times out" (device still applies the value)
 	device.setAttribute = async (attrs) => {
 		device.setAttributeCalls.push(attrs)
+		if (device.failKeys.has(Object.keys(attrs)[0])) throw new Error('Response timeout for type 148')
 	}
 
 	let connected = true
@@ -55,7 +57,11 @@ function createApp() {
 		settings = withPowerOnSession(settings)
 		try {
 			for (const [key, value] of Object.entries(settings)) {
-				await device.setAttribute({ [key]: value })
+				try {
+					await device.setAttribute({ [key]: value })
+				} catch (e) {
+					// continue on lost ack — the device applies the value anyway
+				}
 			}
 		} finally {
 			commandInFlight = false
@@ -237,6 +243,18 @@ describe('/device/preheat', () => {
 		ctx.setConnected(true)
 		ctx.setCommandInFlight(false)
 		ctx.device.setAttributeCalls = []
+		ctx.device.failKeys.clear()
+	})
+
+	it('continues the batch when a write loses its ack (still sends power_flag)', async () => {
+		ctx.device.failKeys.add('PRE_TIME_MINUTE')
+		const res = await request(port, 'POST', '/device/preheat', {
+			headers: auth, body: { hours: 0, minutes: 10, temp: 120 },
+		})
+		expect(res.status).to.equal(200)
+		const keys = ctx.device.setAttributeCalls.map((c) => Object.keys(c)[0])
+		expect(keys).to.include('PRE_TIME_MINUTE') // the failing write was attempted
+		expect(keys[keys.length - 1]).to.equal('power_flag') // and the batch ran to the end
 	})
 
 	it('arms with a valid delay and temp, always using a 60-minute session', async () => {
