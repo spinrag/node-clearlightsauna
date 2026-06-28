@@ -189,7 +189,10 @@ app.use('/device', requireAuth)
 
 // Async function to initialize the server
 async function startServer() {
-	const device = new ClearlightDevice(process.env.CLEARLIGHT_IP)
+	// responseTimeout 2500ms (down from the 5s default): the device occasionally
+	// never acks a write, and we don't want one lost ack to stall a control batch
+	// for 5s. Plenty for a LAN device that normally responds in well under 1s.
+	const device = new ClearlightDevice(process.env.CLEARLIGHT_IP, { responseTimeout: 2500 })
 	let connected = false
 
 	// Health check — no auth required
@@ -344,12 +347,11 @@ async function startServer() {
 	// is in-flight rather than queuing them. The user can retry manually.
 	let commandInFlight = false
 
-	// Each attribute is its own device write. When several are sent in one batch
-	// (e.g. arming pre-heat), the device drops or overwrites writes that arrive
-	// before the previous one has settled — verified against hardware: back-to-back
-	// writes lost PRE_TIME_*, a ~1s gap kept them. Pause between keys (not after
-	// the last), so single-key commands stay instant.
-	const INTER_COMMAND_DELAY_MS = 900
+	// Each attribute is its own device write. A short settle between writes keeps
+	// the device from coalescing rapid back-to-back writes; ~150ms is well above
+	// the tested floor (all writes latched down to 80ms on hardware). The gap only
+	// applies between keys, so single-key commands stay instant.
+	const INTER_COMMAND_DELAY_MS = 150
 
 	async function handleControl(settings) {
 		if (commandInFlight) {
@@ -366,6 +368,7 @@ async function startServer() {
 
 		try {
 			const entries = Object.entries(settings)
+			let lostAcks = 0
 			for (let i = 0; i < entries.length; i++) {
 				const [key, value] = entries[i]
 				// The physical sauna only supports a 0–60 minute timer with no hour
@@ -375,15 +378,21 @@ async function startServer() {
 					logger.warn('SET_HOUR sent but physical controls have no hour component')
 				}
 				logger.debug(`Setting attribute: ${key} = ${value}`)
-				await device.setAttribute({ [key]: value })
-				logger.debug(`Successfully set ${key}`)
+				try {
+					await device.setAttribute({ [key]: value })
+				} catch (error) {
+					// The device frequently applies the value even when its ack is lost
+					// or late (verified against hardware). Do NOT abort the batch — the
+					// remaining writes, notably the final power_flag, must still be sent.
+					lostAcks++
+					const msg = error instanceof Error ? error.message : String(error)
+					logger.warn('Device write ack failed; continuing', { key, error: msg })
+				}
 				if (i < entries.length - 1) {
 					await new Promise(r => setTimeout(r, INTER_COMMAND_DELAY_MS))
 				}
 			}
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : (error ? String(error) : 'Unknown error')
-			logger.error('Device control failed', { error: errorMessage, settings })
+			if (lostAcks) logger.info('Device control finished with lost acks', { lostAcks, total: entries.length })
 		} finally {
 			commandInFlight = false
 		}
