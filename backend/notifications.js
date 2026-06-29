@@ -9,17 +9,22 @@ const HYSTERESIS_DEGREES = 5
  * Called on every device data event.
  *
  * Notification lifecycle per subscription:
- *   1. notified=0, temp rises to >= threshold → send push, set notified=1
+ *   1. powered on, notified=0, temp rises to >= threshold → send push, notified=1
  *   2. notified=1, temp stays near threshold  → do nothing (no spam)
  *   3. notified=1, temp drops to <= threshold-5 → set notified=0 (re-armed)
  *   4. Power off → re-arm all (notified=0) for next heating cycle
  *
+ * A "Sauna Ready" alert is only meaningful while the sauna is actively heating,
+ * so notifications are only sent when powered on. This prevents alerts firing
+ * when the sauna is off but the cabin is still hot (e.g. cooling after a session).
+ *
  * @param {number} currentTemp - Current sauna temperature
  * @param {object} opts
+ * @param {boolean} opts.powerOn - True if the sauna is currently powered on
  * @param {boolean} opts.powerOff - True if power just turned off
  * @param {object} logger - Winston logger instance
  */
-async function checkThresholds(currentTemp, { powerOff = false } = {}, logger) {
+async function checkThresholds(currentTemp, { powerOn = false, powerOff = false } = {}, logger) {
 	// Power off → re-arm all for the next heating cycle
 	if (powerOff) {
 		stmts.rearmAll.run()
@@ -45,7 +50,11 @@ async function checkThresholds(currentTemp, { powerOff = false } = {}, logger) {
 		// Not yet notified — check if threshold reached
 		if (currentTemp < sub.threshold_temp) continue
 
-		// Temperature reached — send notification
+		// Only alert while actively heating. A hot-but-off cabin (cooling down
+		// after a session) must not fire — even though temp >= threshold.
+		if (!powerOn) continue
+
+		// Temperature reached while heating — send notification
 		try {
 			const success = await sendNotification(sub, {
 				title: 'Sauna Ready',

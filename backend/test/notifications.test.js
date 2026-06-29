@@ -50,7 +50,7 @@ describe('checkThresholds', () => {
 
 	it('sends notification when temp reaches threshold', async () => {
 		insertSub({ threshold: 150 })
-		await checkThresholds(150, {}, logger)
+		await checkThresholds(150, { powerOn: true }, logger)
 		expect(sendCalls).to.have.length(1)
 		expect(sendCalls[0].payload.title).to.equal('Sauna Ready')
 		const sub = stmts.getSubscriptionByEndpoint.get('https://push.example.com/test')
@@ -59,13 +59,29 @@ describe('checkThresholds', () => {
 
 	it('sends notification when temp exceeds threshold', async () => {
 		insertSub({ threshold: 150 })
-		await checkThresholds(155, {}, logger)
+		await checkThresholds(155, { powerOn: true }, logger)
 		expect(sendCalls).to.have.length(1)
 	})
 
 	it('does not notify when temp is below threshold', async () => {
 		insertSub({ threshold: 150 })
-		await checkThresholds(149, {}, logger)
+		await checkThresholds(149, { powerOn: true }, logger)
+		expect(sendCalls).to.have.length(0)
+	})
+
+	it('does not notify when powered off, even above threshold (issue #10)', async () => {
+		insertSub({ threshold: 150 })
+		await checkThresholds(155, { powerOn: false }, logger)
+		expect(sendCalls).to.have.length(0)
+		const sub = stmts.getSubscriptionByEndpoint.get('https://push.example.com/test')
+		expect(sub.notified).to.equal(0)
+	})
+
+	it('does not notify a hot cabin re-armed by power-off while still off', async () => {
+		// Reproduces the bug: session ends -> power-off re-arms (notified=0) ->
+		// next frame is still hot but powered off -> must NOT re-fire.
+		insertSub({ threshold: 150, notified: 0 })
+		await checkThresholds(160, { powerOn: false }, logger)
 		expect(sendCalls).to.have.length(0)
 	})
 
@@ -110,7 +126,7 @@ describe('checkThresholds', () => {
 	it('removes expired subscription when send returns false', async () => {
 		sendResult = false
 		insertSub({ threshold: 150 })
-		await checkThresholds(150, {}, logger)
+		await checkThresholds(150, { powerOn: true }, logger)
 		const sub = stmts.getSubscriptionByEndpoint.get('https://push.example.com/test')
 		expect(sub).to.be.undefined
 	})
@@ -118,7 +134,7 @@ describe('checkThresholds', () => {
 	it('handles multiple subscriptions independently', async () => {
 		insertSub({ endpoint: 'https://push.example.com/low', threshold: 100 })
 		insertSub({ endpoint: 'https://push.example.com/high', threshold: 160 })
-		await checkThresholds(120, {}, logger)
+		await checkThresholds(120, { powerOn: true }, logger)
 		expect(sendCalls).to.have.length(1) // only the 100 threshold
 		const low = stmts.getSubscriptionByEndpoint.get('https://push.example.com/low')
 		const high = stmts.getSubscriptionByEndpoint.get('https://push.example.com/high')

@@ -325,9 +325,9 @@ async function startServer() {
 			logSaunaPoint(data, { force: stateChanged })
 		}
 
-		// Check push notification thresholds
+		// Check push notification thresholds (only alerts while powered on)
 		if (pushConfigured && data.CURRENT_TEMP != null) {
-			checkThresholds(data.CURRENT_TEMP, { powerOff }, logger).catch(err => {
+			checkThresholds(data.CURRENT_TEMP, { powerOn: !!data.power_flag, powerOff }, logger).catch(err => {
 				logger.error('Threshold check failed', { error: err.message })
 			})
 		}
