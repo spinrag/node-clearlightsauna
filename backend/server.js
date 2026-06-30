@@ -3,7 +3,7 @@ const express = require('express')
 const http = require('http')
 const { Server } = require('socket.io')
 const winston = require('winston')
-require('dotenv').config()
+require('dotenv').config({ quiet: true })
 
 const { ClearlightDevice } = require('../lib/node-gizwits/index')
 const { validateControlPayload } = require('./validation')
