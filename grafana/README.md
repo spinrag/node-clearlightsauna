@@ -40,6 +40,9 @@ Variables if your naming differs:
   climbing.
 - **Est. Time to `${target_temp}`°F** — predicted heat-up time, with the assumed
   start (24h low) and heating rate shown alongside. See below.
+- **Last Session → `${target_temp}`°F (actual heating)** — the measured time from
+  when heating actually engaged to reaching the target, for the most recent
+  session in the last 24h. Excludes any pre-heat delay (see below).
 
 ## Time-to-temp estimate
 
@@ -52,11 +55,21 @@ estimate (min) = (target − 24h-low current_temp) ÷ median heating rate
 
 - **Start** = the lowest `current_temp` in the last 24h (the cold-start baseline).
 - **Rate** = the median per-minute rise of `current_temp` over the last 30 days,
-  measured **only while `power_flag` is true** (actual heating sessions), keeping
-  rises between 0.2 and 15 °F/min to drop noise and cross-session jumps. Counting
-  only powered periods is essential — including idle time drags the rate toward
-  zero and balloons the estimate. With the current data this is ~3.3 °F/min.
+  measured **only while actually heating** — `power_flag` true **and**
+  `pre_time_flag` false — keeping rises between 0.2 and 15 °F/min to drop noise
+  and cross-session jumps. Both filters matter: idle time drags the rate toward
+  zero, and during a pre-heat delay the power is on but the unit isn't heating
+  yet (temp is flat), so those samples must be excluded too. Currently ~3.3 °F/min.
 - **Target** = the `target_temp` textbox variable — change it to re-estimate.
+
+### Last Session → target (actual heating)
+
+Separately, the **Last Session** panel reports the *measured* time for the most
+recent run: from when heating actually engaged (`power_flag` true **and**
+`pre_time_flag` cleared) to the first sample at/above the target. This is the
+real heating duration with any pre-heat delay stripped out — e.g. a 1-hour
+pre-heat that then heats to 120°F in ~32 min shows **32 min** here, not 93.
+Assumes one heating ramp in the last 24h.
 
 It's a **linear** estimate: it assumes a steady climb. Real heating slows as it
 nears the element's ceiling, so very high targets read optimistically — and if
