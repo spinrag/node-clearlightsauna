@@ -10,17 +10,32 @@
     }
   ],
   "__requires": [
-    { "type": "datasource", "id": "influxdb", "name": "InfluxDB", "version": "1.0.0" },
-    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" }
+    {
+      "type": "datasource",
+      "id": "influxdb",
+      "name": "InfluxDB",
+      "version": "1.0.0"
+    },
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "10.0.0"
+    }
   ],
   "title": "Clearlight Sauna",
   "uid": "clearlight-sauna",
-  "tags": ["sauna"],
+  "tags": [
+    "sauna"
+  ],
   "timezone": "browser",
   "schemaVersion": 39,
   "version": 1,
   "refresh": "30s",
-  "time": { "from": "now-6h", "to": "now" },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
   "templating": {
     "list": [
       {
@@ -28,7 +43,10 @@
         "label": "Bucket",
         "type": "constant",
         "query": "sauna",
-        "current": { "text": "sauna", "value": "sauna" },
+        "current": {
+          "text": "sauna",
+          "value": "sauna"
+        },
         "hide": 2
       },
       {
@@ -36,7 +54,10 @@
         "label": "Device",
         "type": "constant",
         "query": "clearlight",
-        "current": { "text": "clearlight", "value": "clearlight" },
+        "current": {
+          "text": "clearlight",
+          "value": "clearlight"
+        },
         "hide": 2
       },
       {
@@ -44,24 +65,77 @@
         "label": "Target °F",
         "type": "textbox",
         "query": "120",
-        "current": { "text": "120", "value": "120" }
+        "current": {
+          "text": "120",
+          "value": "120"
+        }
       }
     ]
   },
-  "annotations": { "list": [] },
+  "annotations": {
+    "list": []
+  },
   "panels": [
     {
       "id": 1,
       "title": "Current Temp",
       "type": "stat",
-      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-      "fieldConfig": { "defaults": { "unit": "fahrenheit", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "blue", "value": null }, { "color": "green", "value": 100 }, { "color": "orange", "value": 130 }, { "color": "red", "value": 160 } ] } }, "overrides": [] },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "fahrenheit",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 100
+              },
+              {
+                "color": "orange",
+                "value": 130
+              },
+              {
+                "color": "red",
+                "value": 160
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
           "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\")\n  |> filter(fn: (r) => r._field == \"current_temp\")\n  |> last()"
         }
       ]
@@ -70,14 +144,42 @@
       "id": 2,
       "title": "Set Temp (Target)",
       "type": "stat",
-      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-      "fieldConfig": { "defaults": { "unit": "fahrenheit", "color": { "mode": "fixed", "fixedColor": "purple" } }, "overrides": [] },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "fahrenheit",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none"
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
           "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\")\n  |> filter(fn: (r) => r._field == \"set_temp\")\n  |> last()"
         }
       ]
@@ -86,14 +188,57 @@
       "id": 3,
       "title": "Heating",
       "type": "stat",
-      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-      "fieldConfig": { "defaults": { "mappings": [ { "type": "value", "options": { "1": { "text": "ON", "color": "red", "index": 0 }, "0": { "text": "OFF", "color": "blue", "index": 1 } } } ], "color": { "mode": "thresholds" } }, "overrides": [] },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "OFF",
+                  "color": "blue",
+                  "index": 1
+                },
+                "1": {
+                  "text": "ON",
+                  "color": "red",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
           "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\")\n  |> filter(fn: (r) => r._field == \"power_flag\")\n  |> last()\n  |> map(fn: (r) => ({ r with _value: if r._value then 1 else 0 }))"
         }
       ]
@@ -102,14 +247,57 @@
       "id": 4,
       "title": "Pre-Heat Armed",
       "type": "stat",
-      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-      "fieldConfig": { "defaults": { "mappings": [ { "type": "value", "options": { "1": { "text": "ARMED", "color": "orange", "index": 0 }, "0": { "text": "—", "color": "text", "index": 1 } } } ], "color": { "mode": "thresholds" } }, "overrides": [] },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "—",
+                  "color": "text",
+                  "index": 1
+                },
+                "1": {
+                  "text": "ARMED",
+                  "color": "orange",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
           "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\")\n  |> filter(fn: (r) => r._field == \"pre_time_flag\")\n  |> last()\n  |> map(fn: (r) => ({ r with _value: if r._value then 1 else 0 }))"
         }
       ]
@@ -118,14 +306,86 @@
       "id": 5,
       "title": "Heat-up Curve (current vs target)",
       "type": "timeseries",
-      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 5 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-      "fieldConfig": { "defaults": { "unit": "fahrenheit", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 8, "spanNulls": true, "showPoints": "never" } }, "overrides": [ { "matcher": { "id": "byName", "options": "set_temp" }, "properties": [ { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [8, 6] } }, { "id": "color", "value": { "mode": "fixed", "fixedColor": "purple" } } ] }, { "matcher": { "id": "byName", "options": "current_temp" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } } ] } ] },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "fahrenheit",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "spanNulls": true,
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "set_temp"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    8,
+                    6
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "current_temp"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
           "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\")\n  |> filter(fn: (r) => r._field == \"current_temp\" or r._field == \"set_temp\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])"
         }
       ]
@@ -134,14 +394,57 @@
       "id": 6,
       "title": "Power & Pre-Heat State",
       "type": "state-timeline",
-      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 14 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 80, "lineWidth": 0 }, "mappings": [ { "type": "value", "options": { "1": { "text": "on", "color": "red", "index": 0 }, "0": { "text": "off", "color": "dark-blue", "index": 1 } } } ] }, "overrides": [] },
-      "options": { "showValue": "never", "mergeValues": true, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "off",
+                  "color": "dark-blue",
+                  "index": 1
+                },
+                "1": {
+                  "text": "on",
+                  "color": "red",
+                  "index": 0
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "never",
+        "mergeValues": true,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
           "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\")\n  |> filter(fn: (r) => r._field == \"power_flag\" or r._field == \"pre_time_flag\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> map(fn: (r) => ({ r with _value: if r._value then 1 else 0 }))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])"
         }
       ]
@@ -150,14 +453,49 @@
       "id": 7,
       "title": "Heat-up Rate (°F/min)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-      "fieldConfig": { "defaults": { "unit": "°F/min", "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": true, "showPoints": "never" }, "color": { "mode": "fixed", "fixedColor": "green" } }, "overrides": [] },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 20
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "°F/min",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "spanNulls": true,
+            "showPoints": "never"
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
           "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\")\n  |> filter(fn: (r) => r._field == \"current_temp\")\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)\n  |> derivative(unit: 1m, nonNegative: false)\n  |> keep(columns: [\"_time\", \"_value\"])"
         }
       ]
@@ -167,15 +505,61 @@
       "title": "Est. Time to ${target_temp}°F (from 24h low)",
       "type": "stat",
       "description": "Linear estimate = (target − 24h-low current_temp) ÷ median heating rate (positive °F/min over the last 30d). Assumes a cold start at the 24h low and a steady rate; extrapolates if the target is hotter than the sauna has actually reached in the data.",
-      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 28 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-      "fieldConfig": { "defaults": { "unit": "m", "decimals": 0, "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 30 }, { "color": "orange", "value": 60 } ] } }, "overrides": [] },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none", "textMode": "value" },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 28
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "m",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 30
+              },
+              {
+                "color": "orange",
+                "value": 60
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-          "query": "import \"array\"\nlow = float(v: (from(bucket: \"${bucket}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and r._field == \"current_temp\")\n  |> min()\n  |> findColumn(fn: (key) => true, column: \"_value\"))[0])\nrate = (from(bucket: \"${bucket}\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and (r._field == \"current_temp\" or r._field == \"power_flag\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => r.power_flag == true)\n  |> map(fn: (r) => ({ _time: r._time, _value: r.current_temp }))\n  |> derivative(unit: 1m, nonNegative: false)\n  |> filter(fn: (r) => r._value > 0.2 and r._value < 15.0)\n  |> median()\n  |> findColumn(fn: (key) => true, column: \"_value\"))[0]\ntarget = float(v: ${target_temp})\narray.from(rows: [{ _time: now(), _value: if target <= low then 0.0 else (target - low) / rate }])"
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
+          "query": "import \"array\"\nlow = float(v: (from(bucket: \"${bucket}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and r._field == \"current_temp\")\n  |> min()\n  |> findColumn(fn: (key) => true, column: \"_value\"))[0])\nrate = (from(bucket: \"${bucket}\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and (r._field == \"current_temp\" or r._field == \"power_flag\" or r._field == \"pre_time_flag\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => r.power_flag == true and r.pre_time_flag == false)\n  |> map(fn: (r) => ({ _time: r._time, _value: r.current_temp }))\n  |> derivative(unit: 1m, nonNegative: false)\n  |> filter(fn: (r) => r._value > 0.2 and r._value < 15.0)\n  |> median()\n  |> findColumn(fn: (key) => true, column: \"_value\"))[0]\ntarget = float(v: ${target_temp})\narray.from(rows: [{ _time: now(), _value: if target <= low then 0.0 else (target - low) / rate }])"
         }
       ]
     },
@@ -183,14 +567,42 @@
       "id": 9,
       "title": "Assumed Start (24h Low)",
       "type": "stat",
-      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 28 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-      "fieldConfig": { "defaults": { "unit": "fahrenheit", "color": { "mode": "fixed", "fixedColor": "blue" } }, "overrides": [] },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 28
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "fahrenheit",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none"
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
           "query": "from(bucket: \"${bucket}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and r._field == \"current_temp\")\n  |> min()\n  |> keep(columns: [\"_value\"])"
         }
       ]
@@ -199,15 +611,91 @@
       "id": 10,
       "title": "Heating Rate (median, 30d)",
       "type": "stat",
-      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 28 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-      "fieldConfig": { "defaults": { "unit": "°F/min", "decimals": 2, "color": { "mode": "fixed", "fixedColor": "green" } }, "overrides": [] },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 28
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "°F/min",
+          "decimals": 2,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none"
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and (r._field == \"current_temp\" or r._field == \"power_flag\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => r.power_flag == true)\n  |> map(fn: (r) => ({ _time: r._time, _value: r.current_temp }))\n  |> derivative(unit: 1m, nonNegative: false)\n  |> filter(fn: (r) => r._value > 0.2 and r._value < 15.0)\n  |> median()\n  |> keep(columns: [\"_value\"])"
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and (r._field == \"current_temp\" or r._field == \"power_flag\" or r._field == \"pre_time_flag\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => r.power_flag == true and r.pre_time_flag == false)\n  |> map(fn: (r) => ({ _time: r._time, _value: r.current_temp }))\n  |> derivative(unit: 1m, nonNegative: false)\n  |> filter(fn: (r) => r._value > 0.2 and r._value < 15.0)\n  |> median()\n  |> keep(columns: [\"_value\"])"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Last Session → ${target_temp}°F (actual heating)",
+      "type": "stat",
+      "description": "Time from when heating actually engaged (power on AND pre-heat cleared) to reaching the target, for the most recent session in the last 24h. Excludes any pre-heat delay. Assumes one heating ramp in the window.",
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 34
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "m",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
+          "query": "import \"array\"\nh = from(bucket: \"${bucket}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and (r._field == \"current_temp\" or r._field == \"power_flag\" or r._field == \"pre_time_flag\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => r.power_flag == true and r.pre_time_flag == false)\n  |> sort(columns: [\"_time\"])\nstart = (h |> findColumn(fn: (key) => true, column: \"_time\"))[0]\nreach = (h |> filter(fn: (r) => r.current_temp >= ${target_temp}) |> findColumn(fn: (key) => true, column: \"_time\"))[0]\narray.from(rows: [{ _time: now(), _value: float(v: int(v: reach) - int(v: start)) / 60000000000.0 }])"
         }
       ]
     }
