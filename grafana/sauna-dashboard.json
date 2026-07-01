@@ -507,7 +507,7 @@
       "description": "Linear estimate = (target − 24h-low current_temp) ÷ median heating rate (positive °F/min over the last 30d). Assumes a cold start at the 24h low and a steady rate; extrapolates if the target is hotter than the sauna has actually reached in the data.",
       "gridPos": {
         "h": 6,
-        "w": 8,
+        "w": 6,
         "x": 0,
         "y": 28
       },
@@ -559,7 +559,7 @@
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "import \"array\"\nlow = float(v: (from(bucket: \"${bucket}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and r._field == \"current_temp\")\n  |> min()\n  |> findColumn(fn: (key) => true, column: \"_value\"))[0])\nrate = (from(bucket: \"${bucket}\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and (r._field == \"current_temp\" or r._field == \"power_flag\" or r._field == \"pre_time_flag\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => r.power_flag == true and r.pre_time_flag == false)\n  |> map(fn: (r) => ({ _time: r._time, _value: r.current_temp }))\n  |> derivative(unit: 1m, nonNegative: false)\n  |> filter(fn: (r) => r._value > 0.2 and r._value < 15.0)\n  |> median()\n  |> findColumn(fn: (key) => true, column: \"_value\"))[0]\ntarget = float(v: ${target_temp})\narray.from(rows: [{ _time: now(), _value: if target <= low then 0.0 else (target - low) / rate }])"
+          "query": "import \"array\"\nlow = float(v: (from(bucket: \"${bucket}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and r._field == \"current_temp\")\n  |> min()\n  |> findColumn(fn: (key) => true, column: \"_value\"))[0])\nrate = (from(bucket: \"${bucket}\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and (r._field == \"current_temp\" or r._field == \"power_flag\" or r._field == \"pre_time_flag\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => r.power_flag == true and r.pre_time_flag == false and r.current_temp < ${target_temp})\n  |> map(fn: (r) => ({ _time: r._time, _value: r.current_temp }))\n  |> derivative(unit: 1m, nonNegative: false)\n  |> filter(fn: (r) => r._value < 15.0)\n  |> map(fn: (r) => ({ r with _value: if r._value < 0.0 then 0.0 else r._value }))\n  |> mean()\n  |> findColumn(fn: (key) => true, column: \"_value\"))[0]\ntarget = float(v: ${target_temp})\narray.from(rows: [{ _time: now(), _value: if target <= low then 0.0 else (target - low) / rate }])"
         }
       ]
     },
@@ -569,8 +569,8 @@
       "type": "stat",
       "gridPos": {
         "h": 6,
-        "w": 8,
-        "x": 8,
+        "w": 6,
+        "x": 18,
         "y": 28
       },
       "datasource": {
@@ -609,12 +609,12 @@
     },
     {
       "id": 10,
-      "title": "Heating Rate (median, 30d)",
+      "title": "Effective Heating Rate (to ${target_temp}°F)",
       "type": "stat",
       "gridPos": {
         "h": 6,
-        "w": 8,
-        "x": 16,
+        "w": 6,
+        "x": 12,
         "y": 28
       },
       "datasource": {
@@ -648,7 +648,7 @@
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and (r._field == \"current_temp\" or r._field == \"power_flag\" or r._field == \"pre_time_flag\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => r.power_flag == true and r.pre_time_flag == false)\n  |> map(fn: (r) => ({ _time: r._time, _value: r.current_temp }))\n  |> derivative(unit: 1m, nonNegative: false)\n  |> filter(fn: (r) => r._value > 0.2 and r._value < 15.0)\n  |> median()\n  |> keep(columns: [\"_value\"])"
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"sauna\" and r.device == \"${device}\" and (r._field == \"current_temp\" or r._field == \"power_flag\" or r._field == \"pre_time_flag\"))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => r.power_flag == true and r.pre_time_flag == false and r.current_temp < ${target_temp})\n  |> map(fn: (r) => ({ _time: r._time, _value: r.current_temp }))\n  |> derivative(unit: 1m, nonNegative: false)\n  |> filter(fn: (r) => r._value < 15.0)\n  |> map(fn: (r) => ({ r with _value: if r._value < 0.0 then 0.0 else r._value }))\n  |> mean()\n  |> keep(columns: [\"_value\"])"
         }
       ]
     },
@@ -659,9 +659,9 @@
       "description": "Time from when heating actually engaged (power on AND pre-heat cleared) to reaching the target, for the most recent session in the last 24h. Excludes any pre-heat delay. Assumes one heating ramp in the window.",
       "gridPos": {
         "h": 6,
-        "w": 8,
-        "x": 0,
-        "y": 34
+        "w": 6,
+        "x": 6,
+        "y": 28
       },
       "datasource": {
         "type": "influxdb",
