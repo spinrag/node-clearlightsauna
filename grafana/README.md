@@ -50,17 +50,22 @@ The "Est. Time to …°F" panel answers "from a cold start, how long to reach th
 target?" using:
 
 ```
-estimate (min) = (target − 24h-low current_temp) ÷ median heating rate
+estimate (min) = (target − 24h-low current_temp) ÷ effective heating rate
 ```
 
 - **Start** = the lowest `current_temp` in the last 24h (the cold-start baseline).
-- **Rate** = the median per-minute rise of `current_temp` over the last 30 days,
-  measured **only while actually heating** — `power_flag` true **and**
-  `pre_time_flag` false — keeping rises between 0.2 and 15 °F/min to drop noise
-  and cross-session jumps. Both filters matter: idle time drags the rate toward
-  zero, and during a pre-heat delay the power is on but the unit isn't heating
-  yet (temp is flat), so those samples must be excluded too. Currently ~3.3 °F/min.
+- **Rate** = the **effective** heating rate over the last 30 days while actually
+  heating (`power_flag` true, `pre_time_flag` false, `current_temp` below target):
+  the *mean* per-minute rise with dips clipped to zero — i.e. total climb ÷ total
+  elapsed heating time, **plateaus included**. This is deliberately *not* the
+  median rate-while-rising: the heater duty-cycles, so it's only actively rising
+  ~60% of a heat-up. The rising-only rate (~3.2 °F/min) ignores the plateaus and
+  under-predicts by ~2×; the effective rate (~2.0 °F/min) matches real sessions.
 - **Target** = the `target_temp` textbox variable — change it to re-estimate.
+
+> Why effective, not rising-only: on 2026-07-01 a cold start reached 120°F in
+> ~32 min of real heating. Rising-only rate predicted ~17 min; effective rate
+> predicts ~28 min. The gap is entirely the duty-cycle plateaus.
 
 ### Last Session → target (actual heating)
 
