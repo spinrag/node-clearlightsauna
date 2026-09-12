@@ -4,6 +4,7 @@ const http = require('http')
 const express = require('express')
 const EventEmitter = require('events')
 const { validateControlPayload } = require('../validation')
+const buildInfo = require('../build-info')
 
 const TOKEN = 'test-device-token'
 
@@ -36,6 +37,8 @@ function createDeviceApp() {
 		res.json({
 			status: connected ? 'ok' : 'degraded',
 			device: connected ? 'connected' : 'disconnected',
+			version: buildInfo.version,
+			commit: buildInfo.commit,
 			uptime: process.uptime()
 		})
 	})
@@ -150,6 +153,14 @@ describe('Device lifecycle and control', () => {
 		it('does not require auth', async () => {
 			const res = await request(port, 'GET', '/health')
 			expect(res.status).to.equal(200)
+		})
+
+		it('reports the running build version and commit', async () => {
+			const res = await request(port, 'GET', '/health')
+			expect(res.body.version).to.equal(buildInfo.version)
+			expect(res.body.commit).to.equal(buildInfo.commit)
+			expect(res.body.version).to.be.a('string').and.not.be.empty
+			expect(res.body.commit).to.be.a('string').and.not.be.empty
 		})
 	})
 

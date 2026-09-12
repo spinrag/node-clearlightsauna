@@ -84,10 +84,26 @@ pm2 restart clearlight-backend clearlight-frontend
 ## Verify after deploy
 
 ```bash
-# Backend is up, device connected, and stats logging status
+# Backend is up, device connected, stats logging status, and which build is running
 curl -s http://localhost:3000/health
-# => {"status":"ok","device":"connected","logging":"influx","uptime":...}
+# => {"status":"ok","device":"connected","logging":"influx","version":"2.2.0","commit":"acd8636","uptime":...}
+
+# The frontend reports its own build the same way
+curl -s http://localhost:8099/health
+# => {"status":"ok","version":"2.2.0","commit":"acd8636","uptime":...}
 ```
+
+**Confirming a deploy actually landed:** compare the `commit` from both endpoints
+against `git rev-parse --short HEAD` on the host. They must match each other and
+the checkout — a frontend `commit` that lags the backend means step 5 (`pnpm
+build`) was skipped, which is the usual cause of a stale UI.
+
+- The backend resolves `commit` **once at startup**, so it reports the code that
+  is actually running: pulling without restarting will not change it.
+- The frontend's is **baked in at build time**, so it only changes when you rebuild.
+- Both fall back to `unknown` where there is no `.git` (tarball or container
+  deploys); set `GIT_COMMIT` explicitly in that case — the backend reads it at
+  startup, the frontend at build time.
 
 - `logging` is `influx` only when all four `INFLUX_*` vars are set; otherwise `off`.
 - If `device` is `disconnected`, check `CLEARLIGHT_IP` and network reachability.

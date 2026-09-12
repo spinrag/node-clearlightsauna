@@ -12,6 +12,7 @@ const { restoreAction, fallbackAction, withPowerOnSession, buildArmPayload } = r
 const { VAPID_PUBLIC_KEY, configured: pushConfigured } = require('./push')
 const { checkThresholds } = require('./notifications')
 const { logSaunaPoint, closeInflux, configured: influxConfigured } = require('./influx')
+const { version, commit } = require('./build-info')
 
 // Configure Winston logger
 const logger = winston.createLogger({
@@ -201,6 +202,8 @@ async function startServer() {
 			status: connected ? 'ok' : 'degraded',
 			device: connected ? 'connected' : 'disconnected',
 			logging: influxConfigured ? 'influx' : 'off',
+			version,
+			commit,
 			uptime: process.uptime()
 		})
 	})
@@ -674,6 +677,7 @@ async function startServer() {
 	const PORT = process.env.PORT || 3000
 	server.listen(PORT, () => {
 		logger.info(`Server listening on port ${PORT}`)
+		logger.info(`Build: v${version} (${commit})`)
 		logger.info(`Stats logging: ${influxConfigured ? 'InfluxDB enabled' : 'disabled (INFLUX_* not set)'}`)
 	})
 
