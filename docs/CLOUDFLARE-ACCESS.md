@@ -110,12 +110,17 @@ so the routing looks correct while every real client through Cloudflare gets
 `404`. Verifying same-origin routing means testing the public path:
 
 ```bash
-curl -s -o /dev/null -w '%{http_code}\n' --resolve "sauna.example.com:443:$(dig +short A sauna.example.com | head -1)" \
+curl -s -o /dev/null -w '%{http_code}\n' --resolve "sauna.example.com:443:$(dig +short A sauna.example.com @1.1.1.1 | head -1)" \
   "https://sauna.example.com/socket.io/?EIO=4&transport=polling"
 ```
 
 A `302` means Access is challenging (expected when unauthenticated). A **`404`
 means the tunnel is bypassing nginx** — the bug above.
+
+The resolver is pinned to `@1.1.1.1` deliberately. Internal DNS here is
+split-horizon and answers with the LAN address, so a plain `dig` sends the test
+straight to nginx and it passes while the public path is still broken — the same
+trap as the `/etc/hosts` entries below.
 
 ### Verify
 
@@ -245,7 +250,7 @@ but it means a LAN client is not exercising Zero Trust at all. When testing
 Access, force the public path:
 
 ```bash
-curl -sI --resolve "sauna.example.com:443:$(dig +short A sauna.example.com | head -1)" \
+curl -sI --resolve "sauna.example.com:443:$(dig +short A sauna.example.com @1.1.1.1 | head -1)" \
   https://sauna.example.com/
 # expect: 302 -> <your-team>.cloudflareaccess.com, server: cloudflare, cf-ray: ...
 ```
