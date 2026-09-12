@@ -70,6 +70,53 @@ everything to the frontend.
 
 Apply with `sudo nginx -t && sudo systemctl reload nginx`.
 
+### The Cloudflare tunnel must point at nginx, not at the frontend
+
+Same-origin only works if the request actually reaches nginx. The tunnel on the
+Pi originally sent `sauna.example.com` straight to the SvelteKit frontend:
+
+```yaml
+  - hostname: sauna.example.com
+    service: http://localhost:8099      # WRONG: bypasses nginx entirely
+```
+
+That was fine while the browser called the API cross-origin at
+`sauna-api.example.com` (the tunnel maps that hostname to `:3000`). Once the API
+moved to `/api/` and `/socket.io/` on the main hostname, those paths existed
+only in nginx — so Cloudflare traffic hit the frontend, which answered its
+SvelteKit **404**, and the socket never connected. The page still loaded, which
+is what makes it confusing: only the API and socket are missing.
+
+The tunnel must target nginx instead:
+
+```yaml
+  - hostname: sauna.example.com
+    service: https://localhost:443
+    originRequest:
+      noTLSVerify: true
+      originServerName: sauna.example.com
+```
+
+Port 80 is not an option — the vhost there answers `301` to https, so a tunnel
+pointed at it loops.
+
+Restarting `cloudflared` interrupts **every** hostname on that tunnel, and this
+Pi also runs pool control. Check `cloudflared tunnel ingress validate` and review
+the whole ingress list before restarting.
+
+**This is the failure the LAN shortcut hides.** A curl from a machine whose
+`/etc/hosts` pins the hostname to `192.0.2.10` goes to nginx and returns `200`,
+so the routing looks correct while every real client through Cloudflare gets
+`404`. Verifying same-origin routing means testing the public path:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' --resolve "sauna.example.com:443:$(dig +short A sauna.example.com | head -1)" \
+  "https://sauna.example.com/socket.io/?EIO=4&transport=polling"
+```
+
+A `302` means Access is challenging (expected when unauthenticated). A **`404`
+means the tunnel is bypassing nginx** — the bug above.
+
 ### Verify
 
 ```bash
@@ -187,8 +234,7 @@ unstamped worker.
 - **Session duration** — a longer session on both apps means fewer expiries.
 - **Auto-redirect to identity provider** — skips the "choose a login method"
   screen, which matters most in a PWA.
-- Keep the two hostnames in **one Access application** (they already share AUD
-  `REDACTED-ACCESS-AUD…`) so policy changes stay in step.
+- Keep the two hostnames in **one Access application** (they share one AUD) so policy changes stay in step.
 
 ## Note for LAN clients
 
@@ -199,6 +245,7 @@ but it means a LAN client is not exercising Zero Trust at all. When testing
 Access, force the public path:
 
 ```bash
-curl -sI --resolve sauna.example.com:443:203.0.113.10 https://sauna.example.com/
-# expect: 302 -> your-team.cloudflareaccess.com, server: cloudflare, cf-ray: ...
+curl -sI --resolve "sauna.example.com:443:$(dig +short A sauna.example.com | head -1)" \
+  https://sauna.example.com/
+# expect: 302 -> <your-team>.cloudflareaccess.com, server: cloudflare, cf-ray: ...
 ```
