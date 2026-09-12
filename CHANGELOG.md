@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.5.0](https://github.com/spinrag/node-clearlightsauna/compare/v2.4.3...v2.5.0) (2026-09-12)
+
+### ♨️ Features
+
+* **FRONTEND:** show the running build in the status bar ([b741f4f](https://github.com/spinrag/node-clearlightsauna/commit/b741f4fa82c43d1fd906fff86cf8254e3706c075))
+
+### 🧊 Bug Fixes
+
+* **PWA:** activate new service workers immediately so updates reach the app ([5f5b35a](https://github.com/spinrag/node-clearlightsauna/commit/5f5b35a7a7d52d75c7b3c250497c14b140ac6849))
 ## [2.4.3](https://github.com/spinrag/node-clearlightsauna/compare/v2.4.2...v2.4.3) (2026-09-12)
 
 ### 🧊 Bug Fixes
