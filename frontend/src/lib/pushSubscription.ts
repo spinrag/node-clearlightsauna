@@ -1,7 +1,8 @@
 // pushSubscription.ts — Web Push subscribe/unsubscribe helpers
 
+import { apiUrl } from './endpoints';
+
 const API_TOKEN = import.meta.env.VITE_API_TOKEN || '';
-const SOCKET_HOST = import.meta.env.VITE_SOCKET_HOST || 'http://localhost:3000';
 
 function authHeaders(): HeadersInit {
 	return {
@@ -13,7 +14,7 @@ function authHeaders(): HeadersInit {
 /** Fetch the VAPID public key from the backend */
 export async function getVapidPublicKey(): Promise<string | null> {
 	try {
-		const res = await fetch(`${SOCKET_HOST}/push/vapid-public-key`);
+		const res = await fetch(apiUrl('/push/vapid-public-key'));
 		if (!res.ok) return null;
 		const { publicKey } = await res.json();
 		return publicKey;
@@ -46,7 +47,7 @@ export async function subscribeToPush(): Promise<PushSubscription | null> {
 	});
 
 	// Send subscription to backend
-	const res = await fetch(`${SOCKET_HOST}/push/subscribe`, {
+	const res = await fetch(apiUrl('/push/subscribe'), {
 		method: 'POST',
 		headers: authHeaders(),
 		body: JSON.stringify(subscription.toJSON())
@@ -65,7 +66,7 @@ export async function setThreshold(
 	endpoint: string,
 	thresholdTemp: number | null
 ): Promise<boolean> {
-	const res = await fetch(`${SOCKET_HOST}/push/threshold`, {
+	const res = await fetch(apiUrl('/push/threshold'), {
 		method: 'PUT',
 		headers: authHeaders(),
 		body: JSON.stringify({ endpoint, threshold_temp: thresholdTemp })
@@ -77,7 +78,7 @@ export async function setThreshold(
 export async function unsubscribeFromPush(subscription: PushSubscription): Promise<boolean> {
 	const endpoint = subscription.endpoint;
 
-	await fetch(`${SOCKET_HOST}/push/unsubscribe`, {
+	await fetch(apiUrl('/push/unsubscribe'), {
 		method: 'POST',
 		headers: authHeaders(),
 		body: JSON.stringify({ endpoint })
@@ -92,7 +93,7 @@ export async function getSubscriptionStatus(
 	endpoint: string
 ): Promise<{ threshold_temp: number | null; notified: boolean } | null> {
 	try {
-		const res = await fetch(`${SOCKET_HOST}/push/status`, {
+		const res = await fetch(apiUrl('/push/status'), {
 			method: 'POST',
 			headers: authHeaders(),
 			body: JSON.stringify({ endpoint })

@@ -62,6 +62,13 @@ comm -23 \
 
 Recently added keys:
 
+- `VITE_SOCKET_HOST` (frontend) — **leave empty for same-origin**, which is what
+  production should run. A value here points the browser at a different origin,
+  creating a second Cloudflare Access session that expires independently and
+  strands the PWA on the login screen. Requires the nginx `/api/` and
+  `/socket.io/` routes; see [docs/CLOUDFLARE-ACCESS.md](docs/CLOUDFLARE-ACCESS.md).
+  It is compiled into the bundle, so changing it needs a `pnpm build`.
+
 - `API_KEY` — token for `?token=` query-param auth (HTTP automation).
 - `INFLUX_URL`, `INFLUX_TOKEN`, `INFLUX_ORG`, `INFLUX_BUCKET` — enable InfluxDB
   stats logging (all four required; optional `INFLUX_DEVICE`,

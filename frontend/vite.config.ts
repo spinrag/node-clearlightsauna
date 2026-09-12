@@ -42,6 +42,12 @@ export default defineConfig({
 				target: 'http://localhost:3000', // Express server URL
 				changeOrigin: true,
 				rewrite: (path) => path.replace(/^\/api/, '')
+			},
+			// Mirrors the production nginx route so dev is same-origin too.
+			'/socket.io': {
+				target: 'http://localhost:3000',
+				changeOrigin: true,
+				ws: true
 			}
 		}
 	}
