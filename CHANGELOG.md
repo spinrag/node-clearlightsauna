@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.4.2](https://github.com/spinrag/node-clearlightsauna/compare/v2.4.1...v2.4.2) (2026-09-12)
+
+### 🪵 Chore
+
+* **deps:** better-sqlite3 13 ([e91984f](https://github.com/spinrag/node-clearlightsauna/commit/e91984f868c085a27ed3f09c633ac8eadab43d08))
+* **deps:** commit-and-tag-version 13 ([d38e402](https://github.com/spinrag/node-clearlightsauna/commit/d38e4021a6b97200a949d2f93d67110b9613bb14))
+* **deps:** mocha 12 + c8 12 ([7ed5fba](https://github.com/spinrag/node-clearlightsauna/commit/7ed5fba3e695fba81f3e44da45a1bcb9ccd9dba1))
+* **deps:** routine in-range refresh + bound the cookie override ([43857bf](https://github.com/spinrag/node-clearlightsauna/commit/43857bf574db7c6f1523e3e9aeb10db004e7c71e))
 ## [2.4.1](https://github.com/spinrag/node-clearlightsauna/compare/v2.4.0...v2.4.1) (2026-09-12)
 
 
