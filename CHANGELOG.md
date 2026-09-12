@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.4.1](https://github.com/spinrag/node-clearlightsauna/compare/v2.4.0...v2.4.1) (2026-09-12)
+
+
+### 🧊 Bug Fixes
+
+* **DEPS:** patch production-tier dependency vulnerabilities ([1b11dbe](https://github.com/spinrag/node-clearlightsauna/commit/1b11dbe923950569b7c12ec661a84e517aef2bdc))
+* **DEPS:** patch remaining dev/build-tooling vulnerabilities ([13209a1](https://github.com/spinrag/node-clearlightsauna/commit/13209a1be10b64f1fb18c82a09ec6ab272106713))
+
+
+### ⚙️ Build System
+
+* **RELEASE:** sign release commits and tags by default ([edc2c07](https://github.com/spinrag/node-clearlightsauna/commit/edc2c07d591cae783c835344e34f4aaa33920c00))
+
 ## [2.4.0](https://github.com/spinrag/node-clearlightsauna/compare/v2.2.0...v2.4.0) (2026-09-12)
 
 

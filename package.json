@@ -1,6 +1,6 @@
 {
 	"name": "clearlight-controls",
-	"version": "2.4.0",
+	"version": "2.4.1",
 	"private": true,
 	"scripts": {
 		"dev": "pnpm -r run dev",
