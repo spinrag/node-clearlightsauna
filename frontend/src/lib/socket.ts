@@ -7,10 +7,15 @@ const token = import.meta.env.VITE_API_TOKEN || '';
 
 const options = {
 	auth: { token },
-	// Polling is kept as a fallback: a WebSocket upgrade blocked by a proxy or an
-	// Access redirect fails opaquely, whereas the polling handshake is an XHR we
-	// can reason about.
-	transports: ['websocket', 'polling'],
+	// Transport order is left at Socket.IO's default (polling, then a silent
+	// upgrade to websocket) on purpose. Listing websocket first does NOT give a
+	// fallback: the client retries the first transport indefinitely rather than
+	// stepping down the array, so wherever a websocket upgrade cannot complete —
+	// a proxy or edge without websocket support — the connection fails with
+	// `timeout` roughly every 21s and never establishes. Polling first connects
+	// immediately and upgrades when it can, degrading to plain polling when it
+	// cannot. It also makes an expired Access session visible, since the opening
+	// handshake is then an XHR rather than an opaque upgrade.
 	autoConnect: browser
 };
 

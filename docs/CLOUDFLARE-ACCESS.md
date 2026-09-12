@@ -107,9 +107,28 @@ handles it:
 The socket's `connect_error` handler runs this probe, so an expired session
 recovers on its own instead of leaving a dead app.
 
-Socket.IO also keeps `polling` as a fallback transport: a blocked WebSocket
-upgrade fails opaquely, whereas the polling handshake is an XHR that surfaces a
-usable error.
+## Transport order
+
+`socket.ts` leaves Socket.IO's transport order at its default — polling first,
+then a silent upgrade to websocket — and that is load-bearing.
+
+Listing `websocket` first does **not** give a fallback. The client retries the
+first transport indefinitely rather than stepping down the array, so anywhere a
+websocket upgrade cannot complete the connection fails with `timeout` about
+every 21s and never establishes at all. Measured against an edge that accepts
+polling but never completes the upgrade:
+
+| transports | result |
+|---|---|
+| `['websocket','polling']` | `connect_error: timeout` at 21s, 42s, 67s — never connects |
+| default (`polling` first) | connects in 27ms on polling, stays on polling |
+
+Where a websocket *is* available the default still upgrades to it (measured:
+connect in 15ms, final transport `websocket`), so nothing is given up.
+
+Polling first also makes an expired Access session visible, since the opening
+handshake is an XHR that surfaces a real HTTP status rather than an opaque
+failed upgrade.
 
 ## The service worker
 
