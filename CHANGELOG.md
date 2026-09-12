@@ -1,5 +1,66 @@
 # Changelog
 
+## [2.4.0](https://github.com/spinrag/node-clearlightsauna/compare/v2.2.0...v2.4.0) (2026-09-12)
+
+
+### ♨️ Features
+
+* **BACKEND:** add /device/start and /device/stop HTTP endpoints ([900393b](https://github.com/spinrag/node-clearlightsauna/commit/900393b27a0db1a9f1b84f81e0a01e4a24e7f5d3))
+* **BACKEND:** add separate API_KEY for URL query param auth ([4a6f468](https://github.com/spinrag/node-clearlightsauna/commit/4a6f468fecbe2f7761553dc763f8ccaa55e06bfb))
+* **FRONTEND:** instant feedback when arming pre-heat ([3365a49](https://github.com/spinrag/node-clearlightsauna/commit/3365a49da373883e448ec0ef411f29c2e8930fa9))
+* **FRONTEND:** pre-heat confirm flow with hour/minute delay input ([503e8c1](https://github.com/spinrag/node-clearlightsauna/commit/503e8c1a0372059156e6b99a33488155a6c68527))
+* **GRAFANA:** add time-to-temp estimate panels ([9ef21e8](https://github.com/spinrag/node-clearlightsauna/commit/9ef21e86b455d947180b6a9cac202fb8e29a4ce6))
+* **GRAFANA:** effective-rate estimate + last-session panel; 4-across cards ([acd8636](https://github.com/spinrag/node-clearlightsauna/commit/acd86364576081bbc1c897c939230b8a42822319))
+* **GRAFANA:** last-session time-to-target panel; rate excludes pre-heat ([20964b7](https://github.com/spinrag/node-clearlightsauna/commit/20964b7a3761e1bf4dc549299852f3b8223e13e0))
+* **HEALTH:** report version and commit from backend and frontend ([3a8f145](https://github.com/spinrag/node-clearlightsauna/commit/3a8f1451a4bb0f88f0562fe5f563e13bc69278f9))
+* **PREHEAT:** implement working delayed-start pre-heat with backend fallback ([06dbcad](https://github.com/spinrag/node-clearlightsauna/commit/06dbcadecd5d326804ae2c2e8a23667031c37bb5))
+* **STATS:** log sauna stats to InfluxDB for heat-up timing ([546d01a](https://github.com/spinrag/node-clearlightsauna/commit/546d01a75fc2dbbb30ed486b13e6fc9d87389f1a))
+
+
+### 🧊 Bug Fixes
+
+* **ACCESS:** serve the API same-origin and recover expired Access sessions ([b4d9626](https://github.com/spinrag/node-clearlightsauna/commit/b4d9626f3eba3f875899034e1cf3a01b1e957e59))
+* **CI:** restore pnpm version parameter in action-setup ([f52c7a6](https://github.com/spinrag/node-clearlightsauna/commit/f52c7a644222bb31e27f5390e1ca9cdc7ee8561a))
+* **DEPS:** patch production-tier dependency vulnerabilities ([df5e943](https://github.com/spinrag/node-clearlightsauna/commit/df5e9439ac70e1792c3c64197c806116b8f127a5))
+* **DEPS:** patch remaining dev/build-tooling vulnerabilities ([08a5be1](https://github.com/spinrag/node-clearlightsauna/commit/08a5be1281f0e5f71099cf358700f7a87f36b347))
+* **GRAFANA:** base heat-up rate on power-on periods only ([fb50fa0](https://github.com/spinrag/node-clearlightsauna/commit/fb50fa0b974a858e85d0fd2b7093a9562d043a6d))
+* **GRAFANA:** render boolean flags in stat/timeline panels ([6376f68](https://github.com/spinrag/node-clearlightsauna/commit/6376f685bfc0e7047f090c9a2d5aa85413a819a9))
+* **NOTIFY:** only send threshold alerts while powered on ([7571006](https://github.com/spinrag/node-clearlightsauna/commit/75710061af01a13eb10d9e9eb3214c3da405f749)), closes [#10](https://github.com/spinrag/node-clearlightsauna/issues/10)
+* **PWA:** stop stale cache masking Access logins; stamp SW version at build ([ed2a8b2](https://github.com/spinrag/node-clearlightsauna/commit/ed2a8b28cb057eb8f6c564482a6c9dbca22d401a))
+
+
+### ⚙️ CICD
+
+* **CI:** bump actions/checkout and actions/setup-node to v5 (Node 24) ([08cb7d5](https://github.com/spinrag/node-clearlightsauna/commit/08cb7d5068dbfd4a1147c68c9d1e0104e99ccb05))
+* **CI:** bump pnpm/action-setup to v4.1 to fix Node.js 20 deprecation warning ([6516d82](https://github.com/spinrag/node-clearlightsauna/commit/6516d82e4e3629b0e936ceb5db41330b2c87fb7e))
+* **CI:** bump pnpm/action-setup to v4.4.0 for Node.js 24 runtime ([0aaf363](https://github.com/spinrag/node-clearlightsauna/commit/0aaf363edd4762415ef2a21194a604e445346cbb))
+* **CI:** bump pnpm/action-setup to v5 ([8ca99bb](https://github.com/spinrag/node-clearlightsauna/commit/8ca99bb299c3c1b15d604ccd74a78000b5c2bffa))
+
+
+### 🪵 Chore
+
+* **deps:** dotenv 17 ([431a9e4](https://github.com/spinrag/node-clearlightsauna/commit/431a9e4a516739a86e5e170bbc7e5d9a1759ef86))
+* **deps:** eslint 10 stack (eslint, @eslint/js, globals, prettier-plugin-svelte) ([0702737](https://github.com/spinrag/node-clearlightsauna/commit/0702737742f72d979a6b14bdeb8335c1eb5ed685))
+* **deps:** FontAwesome 7 ([590d652](https://github.com/spinrag/node-clearlightsauna/commit/590d652e87d970ebbe4be5a089c1ad93360c6c71))
+* **deps:** routine non-major refresh ([0724372](https://github.com/spinrag/node-clearlightsauna/commit/0724372f7cce28342df84e3c0bf6deccd9965cbd))
+* **deps:** typescript 6 + fix surfaced type errors ([c97dbea](https://github.com/spinrag/node-clearlightsauna/commit/c97dbeaf3d19c24ca8d12bfe65b53c3b901315d2))
+* **deps:** vite 8 + vite-plugin-svelte 7 + adapter-auto 7 ([633432c](https://github.com/spinrag/node-clearlightsauna/commit/633432c2324eaf53c0dd0348ae1ecaf563c8f1a2))
+* **REPO:** gitignore test coverage output ([dbae506](https://github.com/spinrag/node-clearlightsauna/commit/dbae506c7d134cd4a7a8e416c5d5150dd4d0b1b3))
+
+
+### 💨 Performance
+
+* **PREHEAT:** cut inter-write gap to 150ms; tolerate lost acks ([7e6c80c](https://github.com/spinrag/node-clearlightsauna/commit/7e6c80cc9ab0f7191001bc8adf16cd70d52a46d9))
+* **PREHEAT:** write only changed settings when arming ([350233f](https://github.com/spinrag/node-clearlightsauna/commit/350233f582a02fba2736e4a7cc8a6a3378b8edf4))
+
+
+### 📝 Docs
+
+* **DEPLOY:** add redeploy runbook ([5f5618a](https://github.com/spinrag/node-clearlightsauna/commit/5f5618aa2d9f1aee7e3dc8684b84565975d999ae))
+* **DEPLOY:** clarify env file must be backend/.env, not root .env ([9122c12](https://github.com/spinrag/node-clearlightsauna/commit/9122c12697a1d57017010f13e599944affd215ee))
+* **ENV:** split env examples per package, drop misleading root .env.example ([208c80b](https://github.com/spinrag/node-clearlightsauna/commit/208c80b308817d45b083c6fe6449f5b3bcdca62d))
+* **GRAFANA:** add importable sauna dashboard + setup guide ([0884d46](https://github.com/spinrag/node-clearlightsauna/commit/0884d463a598518c0819040a32aaf21660517652))
+
 ## [2.2.0](https://github.com/spinrag/node-clearlightsauna/compare/v2.1.5...v2.2.0) (2026-03-17)
 
 
