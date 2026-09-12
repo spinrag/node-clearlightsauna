@@ -52,9 +52,21 @@
 	const devMode = import.meta.env.VITE_DEV_MODE === 'true';
 	if (devMode) console.log('devMode active', devMode);
 
-	// Connection state
-	let serverConnected = $state(false);
+	// Connection state. 'connecting' is deliberately distinct from 'offline': both
+	// used to be `serverConnected === false`, so a first load announced "cannot
+	// reach backend" before a connection had even been attempted.
+	type Link = 'connecting' | 'online' | 'offline';
+	let link = $state<Link>('connecting');
 	let deviceConnected = $state(false);
+
+	// Whether a reading has actually arrived. The defaults above are zeroes, and
+	// rendering those as "0°F" reports a temperature the sauna never sent.
+	let statusReceived = $state(false);
+
+	// How long a first connection may take before it is reported as failed. A
+	// blocked websocket falls back to polling, which is slower but still works.
+	const CONNECT_GRACE_MS = 6000;
+	let graceTimer: ReturnType<typeof setTimeout> | undefined;
 
 	// Pre-heat (delayed start). The delay is composed locally before arming, then
 	// sent to the backend which arms the device and runs a fallback watchdog.
@@ -176,13 +188,16 @@
 
 	function onConnected() {
 		if (devMode) console.log('socket connected');
-		serverConnected = true;
+		clearTimeout(graceTimer);
+		link = 'online';
 		socket.emit('requestStatus');
 	}
 
 	function onDisconnected() {
 		if (devMode) console.log('socket disconnected');
-		serverConnected = false;
+		// A drop after we were online is a real failure, so report it immediately
+		// rather than waiting out the first-connection grace period again.
+		link = 'offline';
 		deviceConnected = false;
 	}
 
@@ -193,6 +208,10 @@
 	function onAttributes(incoming: Partial<SaunaStatus>) {
 		if (devMode) console.log('status', incoming);
 		Object.assign(status, incoming);
+		// The backend emits an empty `attributes` payload while the sauna is
+		// offline. That carries no reading, so it must not end the loading state —
+		// doing so would put the zeroed defaults back on screen as "0°F".
+		if (Object.keys(incoming).length > 0) statusReceived = true;
 	}
 
 	function onPreheatSchedule(s: PreheatSchedule | null) {
@@ -207,15 +226,23 @@
 		socket.on('attributes', onAttributes);
 		socket.on('preheatSchedule', onPreheatSchedule);
 
+		// Report failure only once a first connection has had time to complete;
+		// until then the honest state is "connecting", not "unreachable".
+		graceTimer = setTimeout(() => {
+			if (link === 'connecting') link = 'offline';
+		}, CONNECT_GRACE_MS);
+
 		// Socket.IO may already be connected by the time onMount fires,
 		// meaning we missed the initial connect + deviceStatus events.
 		if (socket.connected) {
-			serverConnected = true;
+			clearTimeout(graceTimer);
+			link = 'online';
 			socket.emit('requestStatus');
 		}
 	});
 
 	onDestroy(() => {
+		clearTimeout(graceTimer);
 		socket.off('connect', onConnected);
 		socket.off('disconnect', onDisconnected);
 		socket.off('deviceStatus', onDeviceStatus);
@@ -260,9 +287,11 @@
 		<div class="flex flex-col items-center">
 			<div class="text-lg font-semibold">Current</div>
 			<div
-				class={`flex items-center justify-center text-white rounded-full w-24 h-24 mt-2 text-2xl font-bold shadow-lg ${getTemperatureColor(status.CURRENT_TEMP)}`}
+				class={`flex items-center justify-center text-white rounded-full w-24 h-24 mt-2 text-2xl font-bold shadow-lg ${
+					statusReceived ? getTemperatureColor(status.CURRENT_TEMP) : 'bg-gray-600 animate-pulse'
+				}`}
 			>
-				{status.CURRENT_TEMP}°F
+				{statusReceived ? `${status.CURRENT_TEMP}°F` : '—'}
 			</div>
 		</div>
 
@@ -283,9 +312,11 @@
 					/>
 				</div>
 				<div
-					class={`flex items-center justify-center text-white rounded-full w-24 h-24 text-2xl font-bold shadow-lg ${getTemperatureColor(status.SET_TEMP)}`}
+					class={`flex items-center justify-center text-white rounded-full w-24 h-24 text-2xl font-bold shadow-lg ${
+						statusReceived ? getTemperatureColor(status.SET_TEMP) : 'bg-gray-600 animate-pulse'
+					}`}
 				>
-					{status.SET_TEMP}°F
+					{statusReceived ? `${status.SET_TEMP}°F` : '—'}
 				</div>
 			</div>
 		</div>
@@ -418,12 +449,36 @@
 	{/if}
 </div>
 
-{#if !serverConnected}
-	<div class="fixed bottom-10 left-0 right-0 bg-red-700 text-white text-center py-2 px-4">
+{#if link === 'connecting'}
+	<div
+		class="fixed bottom-10 left-0 right-0 bg-slate-600 text-white text-center py-2 px-4 flex items-center justify-center gap-2"
+		role="status"
+		aria-live="polite"
+	>
+		<span
+			class="inline-block w-3 h-3 rounded-full border-2 border-white/40 border-t-white animate-spin"
+			aria-hidden="true"
+		></span>
+		Connecting to backend…
+	</div>
+{:else if link === 'offline'}
+	<div
+		class="fixed bottom-10 left-0 right-0 bg-red-700 text-white text-center py-2 px-4"
+		role="status"
+		aria-live="polite"
+	>
 		Cannot reach backend — controls unavailable
 	</div>
 {:else if !deviceConnected}
-	<div class="fixed bottom-10 left-0 right-0 bg-yellow-600 text-white text-center py-2 px-4">
+	<div
+		class="fixed bottom-10 left-0 right-0 bg-yellow-600 text-white text-center py-2 px-4 flex items-center justify-center gap-2"
+		role="status"
+		aria-live="polite"
+	>
+		<span
+			class="inline-block w-3 h-3 rounded-full border-2 border-white/40 border-t-white animate-spin"
+			aria-hidden="true"
+		></span>
 		Backend connected — waiting for sauna
 	</div>
 {/if}
@@ -433,13 +488,21 @@
 >
 	<span class="flex items-center gap-1">
 		<span
-			class="inline-block w-2 h-2 rounded-full {serverConnected ? 'bg-green-500' : 'bg-red-500'}"
+			class="inline-block w-2 h-2 rounded-full {link === 'online'
+				? 'bg-green-500'
+				: link === 'connecting'
+					? 'bg-amber-500 animate-pulse'
+					: 'bg-red-500'}"
 		></span>
 		Backend
 	</span>
 	<span class="flex items-center gap-1">
 		<span
-			class="inline-block w-2 h-2 rounded-full {deviceConnected ? 'bg-green-500' : 'bg-red-500'}"
+			class="inline-block w-2 h-2 rounded-full {deviceConnected
+				? 'bg-green-500'
+				: link === 'offline'
+					? 'bg-red-500'
+					: 'bg-amber-500 animate-pulse'}"
 		></span>
 		Sauna
 	</span>
