@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.4.3](https://github.com/spinrag/node-clearlightsauna/compare/v2.4.2...v2.4.3) (2026-09-12)
+
+### 🧊 Bug Fixes
+
+* **FRONTEND:** restore default transport order so the socket connects fast ([29e9fea](https://github.com/spinrag/node-clearlightsauna/commit/29e9fea846644dacb9d8a5fa3ccac6744118e85e))
+* **FRONTEND:** show connecting state instead of claiming the backend is down ([17f5ddc](https://github.com/spinrag/node-clearlightsauna/commit/17f5ddc5b3d9bf0fc0f93311a19cca9b77a67f07))
 ## [2.4.2](https://github.com/spinrag/node-clearlightsauna/compare/v2.4.1...v2.4.2) (2026-09-12)
 
 ### 🪵 Chore
