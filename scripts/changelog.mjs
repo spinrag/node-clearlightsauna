@@ -12,6 +12,7 @@
  *   node scripts/changelog.js --first-release
  *   node scripts/changelog.js --release-as major
  *   node scripts/changelog.js --pre-release alpha
+ *   node scripts/changelog.js --no-sign        (skip GPG signing)
  */
 import { readFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
@@ -30,7 +31,7 @@ const { values: args } = parseArgs({
 		'pre-release': { type: 'string', default: '' },
 		'release-as': { type: 'string', default: '' },
 		'no-verify': { type: 'boolean', default: false },
-		sign: { type: 'boolean', default: false }
+		'no-sign': { type: 'boolean', default: false }
 	},
 	strict: false
 })
@@ -66,7 +67,9 @@ const options = {
 	noVerify: args['no-verify'],
 	preRelease: args['pre-release'],
 	releaseAs: args['release-as'],
-	sign: args['sign'],
+	// Signed by default: release commits and tags must carry a signature like every
+	// other commit in this repo. Escape hatch for an environment with no GPG key.
+	sign: !args['no-sign'],
 	skip: {
 		bump: args['skip-bump'],
 		commit: args['skip-commit'],
