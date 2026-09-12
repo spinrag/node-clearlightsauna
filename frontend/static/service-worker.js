@@ -22,9 +22,21 @@ function isNetworkOnly(url) {
 	return NETWORK_ONLY_PATTERNS.some((pattern) => url.includes(pattern));
 }
 
-// Install: pre-cache the app shell
+// Install: pre-cache the app shell, then take over immediately.
+//
+// skipWaiting() is load-bearing. Without it a newly installed worker sits in
+// "waiting" until every client closes, so activate never runs — and activate is
+// what claims clients and posts SW_UPDATED, the only thing that raises the
+// "new version available" banner. An installed PWA is never really closed (it
+// lives in the app switcher), so on iOS the old worker kept serving its cached
+// shell indefinitely and the update was never offered.
 self.addEventListener('install', (event) => {
-	event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS)));
+	event.waitUntil(
+		caches
+			.open(CACHE_NAME)
+			.then((cache) => cache.addAll(PRECACHE_URLS))
+			.then(() => self.skipWaiting())
+	);
 });
 
 // Activate: clean up old caches and notify clients of the update

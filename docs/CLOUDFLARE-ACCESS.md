@@ -148,6 +148,25 @@ non-redirected `ok` responses.
 **`/api/` is network-only.** Same-origin means the worker now sees backend
 requests it previously skipped as cross-origin.
 
+### The worker must take over immediately
+
+`install` calls `self.skipWaiting()`, and that is not optional. Without it a
+newly installed worker sits in **waiting** until every client closes, so
+`activate` never runs — and `activate` is what claims clients and posts
+`SW_UPDATED`, the only thing that raises the "new version available" banner in
+`+layout.svelte`.
+
+A browser tab gets closed eventually, so desktop updates on its own. An
+installed PWA does not: it lives in the app switcher and is essentially never
+closed, so on iOS the old worker kept serving its cached shell indefinitely, the
+app stayed on the previous bundle, and the update was never offered. The
+symptom is a phone that behaves like an older release while desktop is fine.
+
+`+layout.svelte` also watches for this directly — it raises the banner if
+`registration.waiting` is already set, or if a worker reaches `installed` while
+a controller exists — so an update is still offered even if `SW_UPDATED` never
+arrives.
+
 ### Cache version is stamped automatically
 
 `static/service-worker.js` carries a `__BUILD_VERSION__` placeholder that
