@@ -111,6 +111,39 @@ Socket.IO also keeps `polling` as a fallback transport: a blocked WebSocket
 upgrade fails opaquely, whereas the polling handshake is an XHR that surfaces a
 usable error.
 
+## The service worker
+
+The PWA's service worker interacts with Access in two ways that bit us on the
+first same-origin deploy:
+
+**It must not mask an auth challenge with cached content.** Navigation is
+network-first with a cache fallback for offline. When Access redirected `/` to
+its login page, the old handler treated that as a failure and served the stale
+cached shell — which referenced the *previous* build's asset hashes, so the app
+booted the old bundle and tried to reach `sauna-api.example.com`, producing a
+`/cdn-cgi/access/...` error. It now hands the redirect back to the browser
+(`Response.redirect`, since a navigation may not be answered with an
+already-redirected response) so the login can actually run, and caches only
+non-redirected `ok` responses.
+
+**`/api/` is network-only.** Same-origin means the worker now sees backend
+requests it previously skipped as cross-origin.
+
+### Cache version is stamped automatically
+
+`static/service-worker.js` carries a `__BUILD_VERSION__` placeholder that
+`scripts/stamp-sw.mjs` replaces at build time with `<version>-<commit>`. This is
+not cosmetic: a browser installs a new worker only when the script's **bytes**
+differ. A deploy that ships a byte-identical worker is treated as "no update" —
+the old worker stays active, keeps serving its cached shell, and the
+"A new version is available" banner in `+layout.svelte` never fires, because that
+banner is driven by the `SW_UPDATED` message posted from `activate`.
+
+That is exactly what happened when the cache version was a hand-edited constant
+and a deploy forgot to bump it. The stamp runs as part of `pnpm build`, and the
+script exits non-zero if the placeholder is missing rather than shipping an
+unstamped worker.
+
 ## Access settings worth checking
 
 - **Session duration** — a longer session on both apps means fewer expiries.

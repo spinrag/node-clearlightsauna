@@ -1,5 +1,8 @@
-// Increment this version to trigger an update on connected clients
-const CACHE_VERSION = 'v2';
+// Stamped at build time by scripts/stamp-sw.mjs with the app version and commit,
+// so every deploy changes this file and clients pick the update up. Bumping it by
+// hand was forgotten once, which left installed PWAs running a stale bundle
+// against the old API origin.
+const CACHE_VERSION = '__BUILD_VERSION__';
 const CACHE_NAME = `clearlight-${CACHE_VERSION}`;
 
 // Static assets to pre-cache on install
@@ -7,6 +10,7 @@ const PRECACHE_URLS = ['/', '/manifest.json'];
 
 // Patterns that should always go to the network (never cached)
 const NETWORK_ONLY_PATTERNS = [
+	'/api/', // the backend, now same-origin — must never be served from cache
 	'/device/',
 	'/health',
 	'/push/',
@@ -91,10 +95,25 @@ self.addEventListener('fetch', (event) => {
 		event.respondWith(
 			fetch(event.request)
 				.then((response) => {
+					// Cloudflare Access answers an expired session with a redirect to its
+					// login page. That is an auth challenge, not content: pass it back so
+					// the browser can run the login. A navigation may not be answered with
+					// an already-redirected response, so hand over a fresh redirect to the
+					// same place and let the browser follow it.
+					if (response.redirected) {
+						return Response.redirect(response.url, 302);
+					}
+					// Only cache real content. Caching an error (or the login page) would
+					// serve it as the app shell on the next launch.
+					if (!response.ok) {
+						return response;
+					}
 					const clone = response.clone();
 					caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
 					return response;
 				})
+				// Offline only. Auth challenges return above, so a live session is never
+				// masked by a stale shell pointing at old asset hashes.
 				.catch(() => caches.match(event.request))
 		);
 		return;
