@@ -484,26 +484,42 @@
 {/if}
 
 <div
-	class="fixed bottom-0 left-0 right-0 bg-gray-900 text-gray-400 text-xs py-1 px-4 flex justify-center gap-4"
+	class="fixed bottom-0 left-0 right-0 bg-gray-900 text-gray-400 text-xs py-1 px-4 flex items-center"
 >
-	<span class="flex items-center gap-1">
-		<span
-			class="inline-block w-2 h-2 rounded-full {link === 'online'
-				? 'bg-green-500'
-				: link === 'connecting'
-					? 'bg-amber-500 animate-pulse'
-					: 'bg-red-500'}"
-		></span>
-		Backend
-	</span>
-	<span class="flex items-center gap-1">
-		<span
-			class="inline-block w-2 h-2 rounded-full {deviceConnected
-				? 'bg-green-500'
-				: link === 'offline'
-					? 'bg-red-500'
-					: 'bg-amber-500 animate-pulse'}"
-		></span>
-		Sauna
-	</span>
+	<!-- Spacer balancing the build label so the indicators stay centred. -->
+	<div class="flex-1"></div>
+
+	<div class="flex items-center justify-center gap-4">
+		<span class="flex items-center gap-1">
+			<span
+				class="inline-block w-2 h-2 rounded-full {link === 'online'
+					? 'bg-green-500'
+					: link === 'connecting'
+						? 'bg-amber-500 animate-pulse'
+						: 'bg-red-500'}"
+			></span>
+			Backend
+		</span>
+		<span class="flex items-center gap-1">
+			<span
+				class="inline-block w-2 h-2 rounded-full {deviceConnected
+					? 'bg-green-500'
+					: link === 'offline'
+						? 'bg-red-500'
+						: 'bg-amber-500 animate-pulse'}"
+			></span>
+			Sauna
+		</span>
+	</div>
+
+	<!-- The build this bundle was compiled from, not what the server is running:
+	     a stale PWA shows an older value here, which is how a worker that failed
+	     to update gets spotted. Truncates rather than shoving the indicators
+	     off-centre on a narrow screen. -->
+	<div
+		class="flex-1 min-w-0 text-right font-mono text-gray-500 truncate"
+		title="App build {__APP_VERSION__} ({__GIT_COMMIT__})"
+	>
+		v{__APP_VERSION__} · {__GIT_COMMIT__}
+	</div>
 </div>

@@ -14,7 +14,12 @@ export default ts.config(
 		languageOptions: {
 			globals: {
 				...globals.browser,
-				...globals.node
+				...globals.node,
+				// Injected at build time by `define` in vite.config.ts. TypeScript
+				// knows them from src/app.d.ts; eslint needs telling separately or
+				// no-undef flags them.
+				__APP_VERSION__: 'readonly',
+				__GIT_COMMIT__: 'readonly'
 			}
 		}
 	},
