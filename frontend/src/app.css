@@ -13,6 +13,28 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
+	/*
+	  FontAwesome's Svelte component renders <svg class="svg-inline--fa"> carrying
+	  no width, height or inline style — it expects the stylesheet from
+	  @fortawesome/fontawesome-svg-core, which this project does not install. With
+	  that class styling nothing, the SVG has no intrinsic size and each browser
+	  falls back to its own default: Firefox and Chrome land somewhere reasonable,
+	  Safari renders close to the 512px viewBox, which is what made the icons
+	  enormous on iOS while desktop looked fine.
+
+	  Size them here rather than depend on a browser default. These are the same
+	  declarations FontAwesome's own stylesheet would apply.
+	*/
+	.svg-inline--fa {
+		display: inline-block;
+		height: 1em;
+		width: auto;
+		overflow: visible;
+		vertical-align: -0.125em;
+	}
+}
+
+@layer base {
 	*,
 	::after,
 	::before,
