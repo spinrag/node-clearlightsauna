@@ -141,7 +141,7 @@ rebuild — the value is compiled into the bundle, so editing it without
 `pnpm build` changes nothing:
 
 ```bash
-pnpm build && pm2 restart clearlight-frontend
+pnpm build && pm2 restart sauna-frontend
 ```
 
 ## PWA recovery

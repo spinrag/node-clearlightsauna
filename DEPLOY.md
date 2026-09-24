@@ -81,12 +81,17 @@ The backend (`pnpm start`) and the built frontend
 (`PORT=8099 node frontend/build`) should run under a process manager. Examples:
 
 ```bash
-# systemd
-sudo systemctl restart clearlight-backend clearlight-frontend
+# pm2 (what the deploy host actually uses)
+pm2 restart sauna-backend sauna-frontend
 
-# pm2
-pm2 restart clearlight-backend clearlight-frontend
+# systemd, if you run them as units instead
+sudo systemctl restart sauna-backend sauna-frontend
 ```
+
+> **⚠️ Restart by name — never `pm2 restart all`.** The deploy host runs
+> unrelated services under the same pm2 daemon (pool control, `njsPC` and
+> `dashPanel`), and `all` would bounce those too. `pm2 list` shows everything
+> the daemon owns.
 
 ## Verify after deploy
 
