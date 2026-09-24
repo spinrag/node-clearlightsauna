@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.5.1](https://github.com/spinrag/node-clearlightsauna/compare/v2.5.0...v2.5.1) (2026-09-24)
+
+### 🧊 Bug Fixes
+
+* **PWA:** stop the service worker spending Access's single-use login token ([99f182b](https://github.com/spinrag/node-clearlightsauna/commit/99f182bca6836c00c41d4591a0d4eff7f1696c10))
+
+### 📝 Docs
+
+* **ACCESS:** add a portable prompt for the Cloudflare socket failure ([8ec2d91](https://github.com/spinrag/node-clearlightsauna/commit/8ec2d913d0f8aa950bb3026f27612127919d538a))
+* **ACCESS:** pin the verification resolver to a public one ([572b6fb](https://github.com/spinrag/node-clearlightsauna/commit/572b6fb15b515116068c1c2bbf249925b8db4d19))
+* **ACCESS:** tunnel must point at nginx for same-origin to work ([8a5ae8c](https://github.com/spinrag/node-clearlightsauna/commit/8a5ae8cc8a9482f0011fbd6015005b8a658352eb))
 ## [2.5.0](https://github.com/spinrag/node-clearlightsauna/compare/v2.4.3...v2.5.0) (2026-09-12)
 
 ### ♨️ Features
