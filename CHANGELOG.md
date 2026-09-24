@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.5.2](https://github.com/spinrag/node-clearlightsauna/compare/v2.5.1...v2.5.2) (2026-09-24)
+
+### 🧊 Bug Fixes
+
+* **FRONTEND:** size FontAwesome icons instead of trusting browser defaults ([df6583b](https://github.com/spinrag/node-clearlightsauna/commit/df6583bbbabfeabd7d168ee7d787df1cef7a45f8))
+
+### 📝 Docs
+
+* **DEPLOY:** correct the pm2 process names ([f501c56](https://github.com/spinrag/node-clearlightsauna/commit/f501c56c79a0405e0a52b123897745eb1a90722d))
 ## [2.5.1](https://github.com/spinrag/node-clearlightsauna/compare/v2.5.0...v2.5.1) (2026-09-24)
 
 ### 🧊 Bug Fixes
