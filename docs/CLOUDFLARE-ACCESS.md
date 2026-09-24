@@ -219,6 +219,29 @@ symptom is a phone that behaves like an older release while desktop is fine.
 a controller exists — so an update is still offered even if `SW_UPDATED` never
 arrives.
 
+### Navigations must not be intercepted
+
+The fetch handler returns early for `event.request.mode === 'navigate'`, leaving
+navigations entirely to the browser. This is not an oversight — two separate
+outages came from intercepting them.
+
+Access answers an expired session with a redirect to a login URL, and the
+callback that follows carries a **single-use** code. Any `fetch()` inside the
+worker follows that chain and spends it, so handing the browser a redirect to
+the same URL afterwards fails with **"token has already been used"** and the
+login can never complete. An earlier version did exactly that via
+`Response.redirect(response.url, 302)`.
+
+The same handler also fell back to a cached shell whenever the network call
+failed, which booted a previous build against an old API origin — the stale-PWA
+bug above.
+
+The browser performs navigations correctly on its own, including redirects and
+auth. The only loss is an offline app shell, worth nothing here: the app cannot
+function without the backend, so a cached shell renders a dead UI instead of an
+honest failure. `/cdn-cgi/` is also marked network-only so Cloudflare's auth
+endpoints are never cached or replayed.
+
 ### Cache version is stamped automatically
 
 `static/service-worker.js` carries a `__BUILD_VERSION__` placeholder that

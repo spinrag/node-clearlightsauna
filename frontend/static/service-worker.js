@@ -5,11 +5,15 @@
 const CACHE_VERSION = '__BUILD_VERSION__';
 const CACHE_NAME = `clearlight-${CACHE_VERSION}`;
 
-// Static assets to pre-cache on install
-const PRECACHE_URLS = ['/', '/manifest.json'];
+// Static assets to pre-cache on install. '/' is deliberately absent: navigations
+// are not intercepted, so a cached shell would never be served.
+const PRECACHE_URLS = ['/manifest.json'];
 
 // Patterns that should always go to the network (never cached)
 const NETWORK_ONLY_PATTERNS = [
+	// Cloudflare's own namespace, including the Access login callback. Its code is
+	// single-use, so a cached or replayed response breaks the login outright.
+	'/cdn-cgi/',
 	'/api/', // the backend, now same-origin — must never be served from cache
 	'/device/',
 	'/health',
@@ -102,32 +106,21 @@ self.addEventListener('fetch', (event) => {
 		return;
 	}
 
-	// For navigation requests (HTML pages): network-first, fall back to cache
+	// Navigations are deliberately NOT intercepted — the browser handles them.
+	//
+	// Cloudflare Access answers an expired session with a redirect to a login URL
+	// carrying a SINGLE-USE token. Any fetch() here follows that chain and spends
+	// the token, so handing the browser a redirect to the same URL afterwards
+	// fails with "token has already been used" and the login can never complete.
+	// Intercepting navigations also previously served a stale cached shell when
+	// the network call failed, booting an old bundle against an old API origin.
+	//
+	// Both bugs come from touching navigations at all. The browser already
+	// performs them correctly, including redirects and auth flows. The only thing
+	// given up is an offline app shell, which is worth nothing here: this app
+	// cannot do anything without the backend, so an offline shell would render a
+	// dead UI rather than an honest failure.
 	if (event.request.mode === 'navigate') {
-		event.respondWith(
-			fetch(event.request)
-				.then((response) => {
-					// Cloudflare Access answers an expired session with a redirect to its
-					// login page. That is an auth challenge, not content: pass it back so
-					// the browser can run the login. A navigation may not be answered with
-					// an already-redirected response, so hand over a fresh redirect to the
-					// same place and let the browser follow it.
-					if (response.redirected) {
-						return Response.redirect(response.url, 302);
-					}
-					// Only cache real content. Caching an error (or the login page) would
-					// serve it as the app shell on the next launch.
-					if (!response.ok) {
-						return response;
-					}
-					const clone = response.clone();
-					caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-					return response;
-				})
-				// Offline only. Auth challenges return above, so a live session is never
-				// masked by a stale shell pointing at old asset hashes.
-				.catch(() => caches.match(event.request))
-		);
 		return;
 	}
 
